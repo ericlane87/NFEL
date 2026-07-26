@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Questionnaire | N.F.EL Strategic Alliances</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dashboard-page">
+    <aside class="dashboard-sidebar" aria-label="Client portal navigation">
+      <a class="brand dashboard-brand" href="index.html" aria-label="N.F.EL Strategic Alliances home"><span class="brand-mark">N</span><span><strong>N.F.EL Strategic Alliances</strong><small>Client Portal</small></span></a>
+      <nav class="dashboard-nav" aria-label="Dashboard navigation">
+        <a href="dashboard.html">Overview</a>
+        <a href="client-account.html">My Account</a>
+        <a href="portal-assets.html">My Assets</a>
+        <a href="portal-evaluation.html">Evaluation</a>
+        <a href="portal-messages.html">Messages</a>
+      </nav>
+      <a class="dashboard-signout" href="login.html">Sign Out</a>
+    </aside>
+
+    <main class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Required Onboarding</p>
+          <h1>Client questionnaire</h1>
+          <p>Complete this one-time KYC, financial profile, authorization, and risk assessment before submitting deals for review.</p>
+        </div>
+      </header>
+
+      <form class="onboarding-form" aria-label="Client onboarding questionnaire">
+        <section class="dashboard-panel onboarding-step">
+          <div class="panel-header"><h3>Client Identity</h3><span>KYC</span></div>
+          <div class="form-grid">
+            <label>Full Legal Name<input name="full_name" required /></label>
+            <label>Date of Birth<input type="date" name="date_of_birth" required /></label>
+            <label>Citizenship<input name="citizenship" required /></label>
+            <label>Tax ID / Federal ID / SSN<input name="tax_id" required /></label>
+            <label>Passport Number<input name="passport_number" /></label>
+            <label>Passport Country of Issue<input name="passport_country" /></label>
+            <label class="wide">Home Address<textarea name="home_address" rows="3" required></textarea></label>
+            <label>Email Address<input type="email" name="email" required /></label>
+            <label>Cellular Phone<input name="cell_phone" required /></label>
+          </div>
+        </section>
+
+        <section class="dashboard-panel onboarding-step">
+          <div class="panel-header"><h3>Business Information</h3><span>Profile</span></div>
+          <div class="form-grid">
+            <label>Business Name<input name="business_name" /></label>
+            <label>Registration / Tax Number<input name="registration_tax_number" /></label>
+            <label class="wide">Business Address<textarea name="business_address" rows="3"></textarea></label>
+            <label>Nature or Type of Business<input name="business_nature" /></label>
+            <label>Business Phone<input name="business_phone" /></label>
+            <label>Legal Representative / Firm<input name="legal_representative" /></label>
+          </div>
+        </section>
+
+        <section class="dashboard-panel onboarding-step">
+          <div class="panel-header"><h3>Banking & Assets</h3><span>Financial Profile</span></div>
+          <div class="form-grid">
+            <label>Bank<input name="bank" required /></label>
+            <label>Branch<input name="branch" /></label>
+            <label>SWIFT Code<input name="swift_code" /></label>
+            <label>Account Name<input name="account_name" required /></label>
+            <label>Account Number<input name="account_number" required /></label>
+            <label>IBAN<input name="iban" /></label>
+            <label>Annual Income - Last 5 Years<input name="annual_income" /></label>
+            <label>Funds Available for Investment / Deal<input name="available_funds" required /></label>
+            <label class="wide">Asset Description and Location<textarea name="asset_description" rows="4" placeholder="Describe assets, approximate USD value, location, bank/custodian, and account or safekeeping receipt details." required></textarea></label>
+            <label class="wide">History and Origin of Assets<textarea name="asset_origin" rows="4" placeholder="Describe how and where assets were obtained, actual source of funds, and how long they have been owned or on deposit." required></textarea></label>
+          </div>
+        </section>
+
+        <section class="dashboard-panel onboarding-step">
+          <div class="panel-header"><h3>Goals & Risk Assessment</h3><span>Suitability</span></div>
+          <div class="form-grid">
+            <label class="wide">Top Financial Goals<textarea name="financial_goals" rows="4" placeholder="List up to five goals and their priority/time horizon." required></textarea></label>
+            <label>Investment Time Frame<select name="time_frame" required><option value="">Select</option><option>1-2 years</option><option>3-5 years</option><option>5-10 years</option><option>More than 10 years</option></select></label>
+            <label>Withdrawal Horizon<select name="withdrawal_horizon" required><option value="">Select</option><option>Less than 2 years</option><option>2-5 years</option><option>6-9 years</option><option>10-15 years</option><option>More than 15 years</option></select></label>
+            <label>Primary Objective<select name="primary_objective" required><option value="">Select</option><option>Capital preservation</option><option>Balanced</option><option>Long-term growth</option></select></label>
+            <label>Risk Tolerance<select name="risk_tolerance" required><option value="">Select</option><option>Low risk</option><option>Below average risk</option><option>Average risk</option><option>Above average risk</option><option>High risk</option></select></label>
+            <label class="wide">Special Circumstances<textarea name="special_circumstances" rows="3" placeholder="Retirement, tuition, medical needs, liquidity events, planned major withdrawals, or other considerations."></textarea></label>
+          </div>
+        </section>
+
+        <section class="dashboard-panel onboarding-step">
+          <div class="panel-header"><h3>Acknowledgment & Authorization</h3><span>Signature</span></div>
+          <div class="signature-box">
+            <p>I certify that the information provided is true and correct. I authorize N.F.EL Strategic Alliances to use this information for onboarding, KYC, risk assessment, advisory review, and related service-provider coordination.</p>
+            <label class="checkbox-label"><input type="checkbox" name="privacy_acknowledgment" required /> I acknowledge the privacy policy and authorization to release information.</label>
+            <label class="checkbox-label"><input type="checkbox" name="truth_certification" required /> I certify that the source-of-assets and client information are accurate.</label>
+            <div class="drawn-signature-field">
+              <span>Draw Signature</span>
+              <canvas class="signature-pad" width="720" height="220" aria-label="Draw your signature"></canvas>
+              <button class="button secondary clear-signature-button" type="button">Clear Signature</button>
+            </div>
+            <label>Date<input type="date" name="signature_date" required /></label>
+            <button class="button primary" type="submit">Finish and Save Questionnaire</button>
+            <p class="onboarding-note" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+      </form>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

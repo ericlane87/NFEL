@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Account | N.F.EL Strategic Alliances</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dashboard-page">
+    <aside class="dashboard-sidebar" aria-label="Client portal navigation">
+      <a class="brand dashboard-brand" href="index.html" aria-label="N.F.EL Strategic Alliances home"><span class="brand-mark">N</span><span><strong>N.F.EL Strategic Alliances</strong><small>Client Portal</small></span></a>
+      <nav class="dashboard-nav" aria-label="Dashboard navigation">
+        <a href="dashboard.html">Overview</a>
+        <a href="client-account.html" class="is-active">My Account</a>
+        <a href="portal-assets.html">My Assets</a>
+        <a href="portal-evaluation.html">Evaluation</a>
+        <a href="portal-messages.html">Messages</a>
+      </nav>
+      <a class="dashboard-signout" href="login.html">Sign Out</a>
+    </aside>
+    <main class="dashboard-main">
+      <header class="dashboard-topbar"><div><p class="eyebrow">My Account</p><h1>Account profile</h1><p>Manage client relationship details, advisory focus, and portal access status.</p></div></header>
+      <section class="onboarding-banner" aria-label="Onboarding required"><div><p class="eyebrow">Required Onboarding</p><h2>Complete your client questionnaire before submitting a deal.</h2><p>This one-time KYC and risk profile is required before the portal accepts documents for review.</p></div><a class="button primary" href="onboarding.html">Fill Out Questionnaire</a></section>
+      <section class="dashboard-grid">
+        <article class="dashboard-panel">
+          <div class="panel-header"><h3>Client Details</h3><span>Client Access</span></div>
+          <div class="account-list">
+            <p><strong>Client</strong><span>Signed-in client</span></p>
+            <p><strong>Service</strong><span>Trade finance advisory</span></p>
+            <p><strong>Alliance Track</strong><span>Strategic partnership review</span></p>
+            <p><strong>Account Manager</strong><span>Assigned after onboarding</span></p>
+          </div>
+        </article>
+        <article class="dashboard-panel">
+          <div class="panel-header"><h3>Advisory Focus</h3><span>Current</span></div>
+          <div class="account-list">
+            <p><strong>Working Capital</strong><span>Under review</span></p>
+            <p><strong>Trade Corridor</strong><span>Not set</span></p>
+            <p><strong>Documents</strong><span class="document-count">0 Files</span></p>
+            <p><strong>Report Status</strong><span class="report-status">Not Run</span></p>
+          </div>
+        </article>
+        <article class="dashboard-panel onboarding-complete-action is-hidden">
+          <div class="panel-header"><h3>Questionnaire</h3><span>Completed</span></div>
+          <p class="panel-copy">Your one-time onboarding questionnaire is on file. Use this option only if client, banking, risk, or source-of-assets information needs to be updated.</p>
+          <a class="button primary" href="onboarding.html">Update Questionnaire</a>
+        </article>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

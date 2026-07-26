@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Login | N.F.EL Strategic Alliances</title>
+    <meta
+      name="description"
+      content="Client login for N.F.EL Strategic Alliances account management and engagement access."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="login-page">
+    <header class="site-header login-header" aria-label="Primary">
+      <a class="brand" href="index.html" aria-label="N.F.EL Strategic Alliances home">
+        <span class="brand-mark">N</span>
+        <span>
+          <strong>N.F.EL Strategic Alliances</strong>
+          <small>Trade Finance & Alliances</small>
+        </span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="about.html">About</a>
+        <a href="services.html">Services</a>
+        <a href="approach.html">Approach</a>
+        <a href="faq.html">FAQ</a>
+        <a href="index.html#contact">Contact</a>
+      </nav>
+      <a class="header-action" href="index.html">Back to Website</a>
+    </header>
+
+    <main class="login-main">
+      <section class="login-hero" aria-label="Client portal login">
+        <div class="login-copy">
+          <p class="eyebrow">Client Portal</p>
+          <h1>Secure account access for active clients.</h1>
+          <p>
+            Log in to review engagement status, manage account details, and track requested documentation.
+          </p>
+          <div class="portal-points">
+            <span>Account management</span>
+            <span>Document checklist</span>
+            <span>Engagement status</span>
+          </div>
+        </div>
+
+        <form class="login-panel" aria-label="Client login" action="dashboard.html">
+          <div class="panel-header">
+            <h3>Customer Login</h3>
+            <span>Private Access</span>
+          </div>
+          <label>
+            Email Address
+            <input type="email" name="email" placeholder="client@example.com" autocomplete="email" />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" placeholder="Enter password" autocomplete="current-password" />
+          </label>
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" name="remember" />
+              Remember me
+            </label>
+            <a href="index.html#contact">Need access?</a>
+          </div>
+          <button class="button primary full" type="submit">Log In</button>
+          <p class="login-note" role="status" aria-live="polite"></p>
+        </form>
+
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

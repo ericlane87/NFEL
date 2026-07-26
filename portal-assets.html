@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Assets | N.F.EL Strategic Alliances</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dashboard-page">
+    <aside class="dashboard-sidebar" aria-label="Client portal navigation">
+      <a class="brand dashboard-brand" href="index.html" aria-label="N.F.EL Strategic Alliances home"><span class="brand-mark">N</span><span><strong>N.F.EL Strategic Alliances</strong><small>Client Portal</small></span></a>
+      <nav class="dashboard-nav" aria-label="Dashboard navigation">
+        <a href="dashboard.html">Overview</a>
+        <a href="client-account.html">My Account</a>
+        <a href="portal-assets.html" class="is-active">My Assets</a>
+        <a href="portal-evaluation.html">Evaluation</a>
+        <a href="portal-messages.html">Messages</a>
+      </nav>
+      <a class="dashboard-signout" href="login.html">Sign Out</a>
+    </aside>
+    <main class="dashboard-main">
+      <header class="dashboard-topbar"><div><p class="eyebrow">My Assets</p><h1>Submit for review</h1><p>Create a named deal workspace, upload documents, revise prior submissions, and send the current version to evaluation.</p></div><a class="button primary" href="portal-evaluation.html">Go to Evaluation</a></header>
+      <section class="onboarding-banner" aria-label="Onboarding required"><div><p class="eyebrow">Required Onboarding</p><h2>Complete your client questionnaire before submitting a deal.</h2><p>This one-time KYC and risk profile is required before the portal accepts documents for review.</p></div><a class="button primary" href="onboarding.html">Fill Out Questionnaire</a></section>
+      <section class="deal-request-board">
+        <div class="dashboard-panel create-deal-panel">
+          <p class="panel-kicker">New Request</p>
+          <h2>Create a new deal</h2>
+          <p>Start a clean deal request with a name, supporting documents, and additional notes for review.</p>
+          <button class="button primary create-new-deal-button" type="button">Create New Deal</button>
+        </div>
+        <div class="dashboard-panel saved-deals-panel">
+          <div class="panel-header"><div><p class="panel-kicker">Deal Requests</p><h3>Submitted Deals</h3></div><span>Open Any Deal</span></div>
+          <div class="saved-deal-list"><p class="empty-deals"><strong>No saved deals yet</strong><span>Create a deal request to start the first record</span></p></div>
+        </div>
+      </section>
+      <section class="dashboard-panel wide-panel">
+        <div class="panel-header"><div><p class="panel-kicker">Current Deal</p><h3>Trade Finance Deal Workspace</h3></div><span class="active-deal-label">New Draft</span></div>
+        <div class="tool-layout">
+          <form class="deal-tool onboarding-gated" aria-label="AI deal evaluation tool">
+            <label>Deal Name<input type="text" name="deal_name" placeholder="Example: Ghana cocoa export receivables facility" required /></label>
+            <label>Deal Type<select name="deal_type"><option>Import finance</option><option>Export finance</option><option>Receivables finance</option><option>Purchase-order finance</option><option>Letter of credit</option><option>SBLC / guarantee support</option><option>Credit enhancement</option><option>Strategic alliance</option></select></label>
+            <label>Requested Amount<input type="text" name="deal_amount" placeholder="$2,500,000" /></label>
+            <label>Currency<select name="deal_currency"><option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>Other</option></select></label>
+            <label>Buyer / Offtaker<input type="text" name="buyer" placeholder="Buyer, importer, or offtaker name" /></label>
+            <label>Seller / Supplier<input type="text" name="seller" placeholder="Seller, exporter, or supplier name" /></label>
+            <label>Origin Country<input type="text" name="origin_country" placeholder="Country of origin" /></label>
+            <label>Destination Country<input type="text" name="destination_country" placeholder="Destination country" /></label>
+            <label>Payment Terms<input type="text" name="payment_terms" placeholder="LC at sight, 30/60/90 day terms, deposit, etc." /></label>
+            <label>Trade Instrument Needed<select name="instrument"><option>To be determined</option><option>Commercial letter of credit</option><option>Standby letter of credit</option><option>Bank guarantee</option><option>Documentary collection</option><option>Receivables purchase</option><option>Proof of funds support</option></select></label>
+            <label>Incoterms<input type="text" name="incoterms" placeholder="FOB, CIF, EXW, DDP, etc." /></label>
+            <label>Target Closing Date<input type="date" name="closing_date" /></label>
+            <label class="wide">Upload Deal Documents<input class="document-upload" type="file" name="documents" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg" multiple /><span class="field-help">Upload up to 20 files from your computer.</span></label>
+            <fieldset class="document-checklist wide">
+              <legend>Documents Included</legend>
+              <label class="checkbox-label"><input type="checkbox" name="doc_purchase_order" /> Purchase order or contract</label>
+              <label class="checkbox-label"><input type="checkbox" name="doc_invoice" /> Pro forma invoice or commercial invoice</label>
+              <label class="checkbox-label"><input type="checkbox" name="doc_financials" /> Financial statements or bank references</label>
+              <label class="checkbox-label"><input type="checkbox" name="doc_kyc" /> KYC / company registration documents</label>
+              <label class="checkbox-label"><input type="checkbox" name="doc_logistics" /> Logistics, insurance, or shipping documents</label>
+              <label class="checkbox-label"><input type="checkbox" name="doc_instrument" /> LC, SBLC, guarantee, or instrument draft</label>
+            </fieldset>
+            <label class="wide">Deal Summary and Risk Notes<textarea name="deal_notes" rows="5" placeholder="Describe the transaction, counterparties, goods/services, requested facility, collateral, risks, timing, and what you want the AI to evaluate."></textarea></label>
+            <div class="deal-actions wide">
+              <button class="button primary" type="submit">Save Deal Workspace</button>
+              <button class="button secondary duplicate-deal-button" type="button">Save as New Revision</button>
+            </div>
+            <p class="tool-note" role="status" aria-live="polite"></p>
+          </form>
+          <div class="submitted-documents deal-side-panel" aria-label="Submitted documents">
+            <h4>Current Deal Files</h4>
+            <div class="document-list"><p class="empty-documents"><strong>No documents uploaded yet</strong><span>Awaiting files</span></p></div>
+            <button class="button secondary upload-trigger-button" type="button">Upload or Replace Files</button>
+            <button class="button secondary revise-documents-button" type="button">Modify Current Deal</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

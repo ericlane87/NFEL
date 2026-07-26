@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Dashboard | N.F.EL Strategic Alliances</title>
+    <meta
+      name="description"
+      content="Client dashboard for N.F.EL Strategic Alliances account management."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dashboard-page">
+    <aside class="dashboard-sidebar" aria-label="Client portal navigation">
+      <a class="brand dashboard-brand" href="index.html" aria-label="N.F.EL Strategic Alliances home">
+        <span class="brand-mark">N</span>
+        <span>
+          <strong>N.F.EL Strategic Alliances</strong>
+          <small>Client Portal</small>
+        </span>
+      </a>
+      <nav class="dashboard-nav" aria-label="Dashboard navigation">
+        <a href="dashboard.html" class="is-active">Overview</a>
+        <a href="client-account.html">My Account</a>
+        <a href="portal-assets.html">My Assets</a>
+        <a href="portal-evaluation.html">Evaluation</a>
+        <a href="portal-messages.html">Messages</a>
+      </nav>
+      <a class="dashboard-signout" href="login.html">Sign Out</a>
+    </aside>
+
+    <main class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Client Dashboard</p>
+          <h1>Private client portal</h1>
+          <p>Wealth, commercial banking, and trade finance activity in one advisory workspace.</p>
+        </div>
+        <a class="button primary" href="portal-assets.html">Submit for Review</a>
+      </header>
+
+      <section class="onboarding-banner" aria-label="Onboarding required">
+        <div>
+          <p class="eyebrow">Required Onboarding</p>
+          <h2>Complete your client questionnaire before submitting a deal.</h2>
+          <p>This one-time KYC and risk profile is required before the portal accepts documents for review.</p>
+        </div>
+        <a class="button primary" href="onboarding.html">Fill Out Questionnaire</a>
+      </section>
+
+      <section class="dashboard-hero-card" aria-label="Client relationship summary">
+        <div>
+          <p class="eyebrow">Relationship Overview</p>
+          <h2>Trade finance readiness and strategic banking review.</h2>
+          <p>
+            Current engagement focus: transaction documentation, working-capital structure, counterparty risk, and lender presentation quality.
+          </p>
+        </div>
+        <div class="relationship-card">
+          <span>Client Tier</span>
+          <strong>Private Advisory</strong>
+          <p>Managed by N.F.EL Strategic Alliances</p>
+        </div>
+      </section>
+
+      <section class="overview-layout" aria-label="Portal overview">
+        <article class="dashboard-panel priority-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Priority</p>
+              <h3>Submit current deal materials for review.</h3>
+            </div>
+            <span>Next Step</span>
+          </div>
+          <p>
+            Start by uploading the documents you want reviewed. The evaluation page will handle the AI score, findings, report history, and PDF export.
+          </p>
+          <div class="overview-actions">
+            <a class="button primary" href="portal-assets.html">Submit for Review</a>
+            <a class="button secondary" href="portal-evaluation.html">Open Evaluation</a>
+          </div>
+        </article>
+
+        <article class="dashboard-panel">
+          <div class="panel-header">
+            <h3>Advisory Snapshot</h3>
+            <span>Current</span>
+          </div>
+          <div class="account-list">
+            <p><strong>Primary Focus</strong><span>Trade finance readiness</span></p>
+            <p><strong>Review Area</strong><span>Working capital structure</span></p>
+            <p><strong>Risk Lens</strong><span>Counterparty and repayment support</span></p>
+            <p><strong>Next Milestone</strong><span>Document submission</span></p>
+          </div>
+        </article>
+
+        <article class="dashboard-panel wide-panel">
+          <div class="panel-header">
+            <h3>Portal Status</h3>
+            <span>Overview</span>
+          </div>
+          <div class="status-row">
+            <p><strong>Assets</strong><span class="document-count">0 Files</span></p>
+            <p><strong>Evaluation</strong><span class="report-status">Not Run</span></p>
+            <p><strong>Risk Review</strong><span class="risk-count">Not Scored</span></p>
+          </div>
+        </article>
+
+        <article class="dashboard-panel wide-panel">
+          <div class="panel-header">
+            <h3>Recent Activity</h3>
+            <span>Portal</span>
+          </div>
+          <div class="activity-list">
+            <p><time>Today</time><span>Portal access opened successfully.</span></p>
+            <p><time>Next</time><span>Submit assets for review when the deal package is ready.</span></p>
+            <p><time>After</time><span>Run the evaluation to generate a readiness score and report.</span></p>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

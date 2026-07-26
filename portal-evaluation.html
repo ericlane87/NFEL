@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evaluation | N.F.EL Strategic Alliances</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dashboard-page">
+    <aside class="dashboard-sidebar" aria-label="Client portal navigation">
+      <a class="brand dashboard-brand" href="index.html" aria-label="N.F.EL Strategic Alliances home"><span class="brand-mark">N</span><span><strong>N.F.EL Strategic Alliances</strong><small>Client Portal</small></span></a>
+      <nav class="dashboard-nav" aria-label="Dashboard navigation">
+        <a href="dashboard.html">Overview</a>
+        <a href="client-account.html">My Account</a>
+        <a href="portal-assets.html">My Assets</a>
+        <a href="portal-evaluation.html" class="is-active">Evaluation</a>
+        <a href="portal-messages.html">Messages</a>
+      </nav>
+      <a class="dashboard-signout" href="login.html">Sign Out</a>
+    </aside>
+    <main class="dashboard-main">
+      <header class="dashboard-topbar"><div><p class="eyebrow">Evaluation</p><h1>AI deal review</h1><p>Evaluate the selected deal workspace, compare score changes after revisions, and export the current report.</p></div><a class="button primary evaluation-deal-action" href="portal-assets.html">Create Deal</a></header>
+      <section class="onboarding-banner" aria-label="Onboarding required"><div><p class="eyebrow">Required Onboarding</p><h2>Complete your client questionnaire before submitting a deal.</h2><p>This one-time KYC and risk profile is required before the portal accepts documents for review.</p></div><a class="button primary" href="onboarding.html">Fill Out Questionnaire</a></section>
+      <section class="dashboard-panel wide-panel evaluation-panel">
+        <div class="panel-header"><div><p class="panel-kicker">Evaluation</p><h3>AI Deal Review</h3></div><span class="evaluation-status">Ready</span></div>
+        <div class="evaluation-workflow">
+          <div class="workflow-step is-complete"><span>1</span><p><strong>Deal Workspace</strong> Name the deal, add trade terms, and upload the file set.</p></div>
+          <div class="workflow-step"><span>2</span><p><strong>Evaluate</strong> Run AI review against readiness, risk, and documentation criteria.</p></div>
+          <div class="workflow-step"><span>3</span><p><strong>Compare</strong> Review score movement and download the report.</p></div>
+        </div>
+        <div class="current-deal-summary">
+          <div><span>Selected Deal</span><strong class="current-deal-name">No deal selected</strong></div>
+          <div><span>Requested Amount</span><strong class="current-deal-amount">--</strong></div>
+          <div><span>Instrument</span><strong class="current-deal-instrument">--</strong></div>
+          <div><span>Documents</span><strong class="current-deal-docs">0 Files</strong></div>
+        </div>
+        <div class="evaluation-actions">
+          <div class="evaluation-progress is-hidden" aria-label="Evaluation progress">
+            <div class="progress-ring" style="--progress: 0"><span class="progress-percent">0%</span></div>
+            <p class="progress-label">Preparing review</p>
+          </div>
+          <button class="button primary run-evaluation-button" type="button">Run Evaluation</button>
+          <a class="button secondary evaluation-revise-action" href="portal-assets.html">Create Deal First</a>
+          <p class="evaluation-note" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+      <section class="dashboard-panel wide-panel report-panel" id="report">
+        <div class="panel-header"><div><p class="panel-kicker">Deal Intelligence</p><h3>AI Evaluation Report</h3></div><span>Downloadable</span></div>
+        <div class="report-layout">
+          <div class="report-score"><span>Deal Readiness</span><strong class="deal-score">--</strong><p class="score-change">Upload documents and run the evaluation to generate a readiness score.</p></div>
+          <div class="report-findings">
+            <h4>Key Findings</h4>
+            <ul class="findings-list"><li>No evaluation has been run yet.</li><li>Upload the current document set, save it, then run the AI review.</li></ul>
+            <button class="button secondary download-report-button" type="button">Download PDF Report</button>
+            <p class="report-note" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="evaluation-history" aria-label="Evaluation history"><h4>Evaluation History</h4><div class="history-list"><p class="empty-history"><strong>No evaluation history</strong><span>Run an evaluation to create the first record</span></p></div></div>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>
