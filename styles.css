@@ -1493,12 +1493,14 @@ textarea:focus {
   font-size: 17px;
 }
 
-.document-list {
+.document-list,
+.kyc-document-list {
   display: grid;
   gap: 10px;
 }
 
-.document-list p {
+.document-list p,
+.kyc-document-list p {
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -1507,7 +1509,8 @@ textarea:focus {
   border-bottom: 1px solid var(--line);
 }
 
-.document-list span {
+.document-list span,
+.kyc-document-list span {
   color: var(--bronze-dark);
   font-size: 13px;
   font-weight: 900;
@@ -1715,6 +1718,59 @@ textarea:focus {
   color: var(--muted);
 }
 
+.questionnaire-review-body {
+  display: grid;
+  gap: 18px;
+}
+
+.review-section {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.review-section h4 {
+  margin: 0 0 6px;
+}
+
+.review-section p {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.32fr) 1fr;
+  gap: 16px;
+  margin: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-section p:last-child {
+  border-bottom: 0;
+}
+
+.review-section span,
+.review-list li {
+  color: var(--muted);
+}
+
+.review-list h5 {
+  margin: 12px 0 8px;
+  font-size: 14px;
+}
+
+.review-list ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.review-signature {
+  width: min(420px, 100%);
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
 .report-score span {
   display: block;
   margin-bottom: 16px;
@@ -1761,6 +1817,23 @@ textarea:focus {
 
 .contact-section {
   background: var(--white);
+}
+
+.consultation-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+
+.consultation-form {
+  max-width: none;
+  padding: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 247, 0.98));
+  border: 1px solid rgba(217, 222, 226, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(28, 31, 30, 0.09);
 }
 
 .contact-form {
@@ -2008,6 +2081,7 @@ textarea:focus {
   .deal-tool,
   .document-checklist,
   .form-grid,
+  .consultation-layout,
   .contact-form {
     grid-template-columns: 1fr;
   }
@@ -2271,11 +2345,14 @@ textarea:focus {
   }
 
   .report-panel,
-  .report-panel * {
+  .report-panel *,
+  .questionnaire-review-panel,
+  .questionnaire-review-panel * {
     visibility: visible;
   }
 
-  .report-panel {
+  .report-panel,
+  .questionnaire-review-panel {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -2284,7 +2361,12 @@ textarea:focus {
   }
 
   .download-report-button,
-  .report-note {
+  .report-note,
+  .print-questionnaire-button {
     display: none;
+  }
+
+  .review-section {
+    break-inside: avoid;
   }
 }

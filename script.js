@@ -22,6 +22,8 @@ const stripReportStatus = document.querySelector(".strip-report-status");
 const riskCount = document.querySelector(".risk-count");
 const onboardingForm = document.querySelector(".onboarding-form");
 const onboardingNote = document.querySelector(".onboarding-note");
+const kycDocumentUpload = document.querySelector(".kyc-document-upload");
+const kycDocumentList = document.querySelector(".kyc-document-list");
 const onboardingBanners = document.querySelectorAll(".onboarding-banner");
 const onboardingGatedForms = document.querySelectorAll(".onboarding-gated");
 const onboardingCompleteActions = document.querySelectorAll(".onboarding-complete-action");
@@ -50,16 +52,21 @@ const progressPercent = document.querySelector(".progress-percent");
 const progressLabel = document.querySelector(".progress-label");
 const evaluationDealAction = document.querySelector(".evaluation-deal-action");
 const evaluationReviseAction = document.querySelector(".evaluation-revise-action");
+const questionnaireReviewBody = document.querySelector(".questionnaire-review-body");
+const questionnaireReviewStatus = document.querySelector(".questionnaire-review-status");
+const printQuestionnaireButton = document.querySelector(".print-questionnaire-button");
 
 let evaluationRun = 0;
 let currentScore = null;
 let documentRevision = 1;
 let hasDrawnSignature = false;
+const maxLocalDocumentBytes = 18 * 1024 * 1024;
 
 restorePortalState();
 applyOnboardingState();
 initializeSignaturePad();
 initializeChat();
+renderQuestionnaireReview();
 
 loginForm?.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -82,13 +89,6 @@ contactForm?.addEventListener("submit", (event) => {
 });
 
 documentUpload?.addEventListener("change", () => {
-  if (!isOnboardingComplete()) {
-    renderDocumentList([]);
-    updateText(toolNote, "Complete the client questionnaire before uploading deal documents.");
-    documentUpload.value = "";
-    return;
-  }
-
   const files = Array.from(documentUpload.files || []);
 
   if (files.length > 20) {
@@ -115,6 +115,10 @@ documentUpload?.addEventListener("change", () => {
   }
 });
 
+kycDocumentUpload?.addEventListener("change", () => {
+  renderKycDocumentList(Array.from(kycDocumentUpload.files || []));
+});
+
 uploadTriggerButton?.addEventListener("click", () => {
   documentUpload?.click();
 });
@@ -123,15 +127,11 @@ createNewDealButton?.addEventListener("click", () => {
   startNewDealDraft();
 });
 
-dealTool?.addEventListener("submit", (event) => {
+dealTool?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  if (!isOnboardingComplete()) {
-    updateText(toolNote, "Complete the client questionnaire before saving deal documents.");
-    return;
-  }
-
   const button = dealTool.querySelector("button[type='submit']");
+  const selectedFiles = Array.from(documentUpload?.files || []);
   const deal = saveDealWorkspace(false);
 
   if (!deal) {
@@ -140,54 +140,46 @@ dealTool?.addEventListener("submit", (event) => {
 
   button.disabled = true;
   button.textContent = "Saving...";
-  updateText(toolNote, `${deal.name} saved. You can now run the evaluation separately.`);
-  updateText(evaluationStatus, "Ready");
 
-  setTimeout(() => {
+  try {
+    await saveDealDocumentsForEvaluation(deal, selectedFiles);
+    updateText(toolNote, `${deal.name} saved with ${deal.documents?.length || 0} document reference${deal.documents?.length === 1 ? "" : "s"}. You can now run the evaluation.`);
+    updateText(evaluationStatus, "Ready");
+    setTimeout(() => {
+      window.location.href = "portal-evaluation.html";
+    }, 500);
+  } catch (error) {
+    console.error(error);
+    updateText(toolNote, error.message || "Deal saved, but the documents could not be prepared for AI review.");
+    updateText(evaluationStatus, "Document Save Needed");
+  } finally {
     button.disabled = false;
     button.textContent = "Save Deal Workspace";
-    window.location.href = "portal-evaluation.html";
-  }, 700);
+  }
 });
 
-duplicateDealButton?.addEventListener("click", () => {
-  if (!isOnboardingComplete()) {
-    updateText(toolNote, "Complete the client questionnaire before saving a deal revision.");
-    return;
-  }
-
+duplicateDealButton?.addEventListener("click", async () => {
+  const selectedFiles = Array.from(documentUpload?.files || []);
   const deal = saveDealWorkspace(true);
   if (!deal) {
     return;
   }
-  updateText(toolNote, `${deal.name} saved as Revision ${deal.revision}.`);
+
+  try {
+    await saveDealDocumentsForEvaluation(deal, selectedFiles);
+    updateText(toolNote, `${deal.name} saved as Revision ${deal.revision} with documents ready for AI review.`);
+  } catch (error) {
+    console.error(error);
+    updateText(toolNote, error.message || `${deal.name} revision saved, but documents could not be prepared for AI review.`);
+  }
 });
 
-runEvaluationButton?.addEventListener("click", () => {
-  if (!isOnboardingComplete()) {
-    evaluationNote.textContent = "Complete the client questionnaire before running an evaluation.";
-    evaluationStatus.textContent = "Questionnaire Required";
-    setTimeout(() => {
-      window.location.href = "onboarding.html";
-    }, 900);
-    return;
-  }
-
+runEvaluationButton?.addEventListener("click", async () => {
   const activeDeal = getActiveDeal();
-  const files = activeDeal?.documents || getSavedDocumentNames();
 
   if (!activeDeal) {
-    updateText(evaluationNote, "Create and save a named deal workspace before running an evaluation.");
+    updateText(evaluationNote, "Create or save a deal workspace before running an evaluation.");
     updateText(evaluationStatus, "Deal Required");
-    setTimeout(() => {
-      window.location.href = "portal-assets.html";
-    }, 900);
-    return;
-  }
-
-  if (!files.length) {
-    updateText(evaluationNote, "Upload at least one document before running the evaluation.");
-    updateText(evaluationStatus, "Documents Required");
     setTimeout(() => {
       window.location.href = "portal-assets.html";
     }, 900);
@@ -199,20 +191,28 @@ runEvaluationButton?.addEventListener("click", () => {
   runEvaluationButton.disabled = true;
   runEvaluationButton.textContent = "Evaluating...";
   updateText(evaluationStatus, "Running");
-  updateText(evaluationNote, `Reviewing ${activeDeal.name} against trade finance readiness criteria.`);
+    updateText(evaluationNote, `Reviewing ${activeDeal.name || "the saved deal"} against trade finance readiness criteria.`);
   startEvaluationProgress();
 
-  setTimeout(() => {
+  try {
     evaluationRun += 1;
-    currentScore = calculateScore(previousScore, activeDeal);
-    updateEvaluationReport(previousScore, currentScore, activeDeal);
+    const evaluation = await requestDealEvaluation(activeDeal);
+    currentScore = evaluation.readiness_score;
+    updateEvaluationReport(previousScore, currentScore, activeDeal, evaluation);
     completeEvaluationProgress();
 
     runEvaluationButton.disabled = false;
     runEvaluationButton.textContent = "Run Evaluation Again";
     updateText(evaluationStatus, "Complete");
-    updateText(evaluationNote, "Evaluation complete. Score, findings, and deal history were refreshed.");
-  }, 900);
+    updateText(evaluationNote, "OpenAI evaluation complete. Score, findings, and deal history were refreshed.");
+  } catch (error) {
+    console.error(error);
+    completeEvaluationProgress();
+    runEvaluationButton.disabled = false;
+    runEvaluationButton.textContent = "Run Evaluation";
+    updateText(evaluationStatus, "Needs Attention");
+    updateText(evaluationNote, error.message || "Evaluation could not be completed. Check the server and API key.");
+  }
 });
 
 reviseDocumentsButtons.forEach((button) => {
@@ -257,7 +257,11 @@ downloadReportButton?.addEventListener("click", () => {
   window.print();
 });
 
-onboardingForm?.addEventListener("submit", (event) => {
+printQuestionnaireButton?.addEventListener("click", () => {
+  window.print();
+});
+
+onboardingForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!hasDrawnSignature) {
@@ -265,13 +269,38 @@ onboardingForm?.addEventListener("submit", (event) => {
     return;
   }
 
+  const kycFiles = Array.from(kycDocumentUpload?.files || []);
+
+  if (kycDocumentUpload && kycFiles.length < 2) {
+    updateText(onboardingNote, "Upload both required KYC documents before submitting the questionnaire.");
+    return;
+  }
+
+  const submitButton = onboardingForm.querySelector("button[type='submit']");
   const formData = new FormData(onboardingForm);
   const payload = Object.fromEntries(formData.entries());
   payload.privacy_acknowledgment = formData.has("privacy_acknowledgment");
   payload.truth_certification = formData.has("truth_certification");
+  payload.kyc_documents = kycFiles.map((file) => file.name).join(", ");
   payload.completed_at = new Date().toISOString();
   payload.confirmation_id = window.crypto?.randomUUID ? window.crypto.randomUUID() : `confirmation-${Date.now()}`;
   payload.signature_image = signaturePad?.toDataURL("image/png") || "";
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Reviewing...";
+  updateText(onboardingNote, "Saving questionnaire and sending KYC documents to AI review.");
+
+  try {
+    await saveKycDocumentsForEvaluation(kycFiles);
+    const kycEvaluation = await requestKycEvaluation(payload);
+    localStorage.setItem("nfelKycEvaluation", JSON.stringify(kycEvaluation));
+  } catch (error) {
+    console.error(error);
+    submitButton.disabled = false;
+    submitButton.textContent = "Finish and Save Questionnaire";
+    updateText(onboardingNote, error.message || "The KYC package could not be evaluated. Check the server and API key.");
+    return;
+  }
 
   localStorage.setItem("nfelOnboardingComplete", "true");
   localStorage.setItem("nfelOnboardingPayload", JSON.stringify(payload));
@@ -287,7 +316,7 @@ onboardingForm?.addEventListener("submit", (event) => {
     })
   );
 
-  updateText(onboardingNote, "Questionnaire saved. You can now submit assets for review.");
+  updateText(onboardingNote, "Questionnaire saved and KYC package reviewed. You can now submit assets for review.");
 
   setTimeout(() => {
     window.location.href = "portal-assets.html";
@@ -321,7 +350,26 @@ function calculateScore(previousScore, deal = getActiveDeal()) {
   return Math.max(61, Math.min(96, nextScore));
 }
 
-function updateEvaluationReport(previousScore, nextScore, deal = getActiveDeal()) {
+async function requestDealEvaluation(deal) {
+  const response = await fetch("/api/evaluate-deal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deal }),
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result.error || "OpenAI evaluation failed.");
+  }
+
+  if (typeof result.readiness_score !== "number" || !Array.isArray(result.key_findings)) {
+    throw new Error("OpenAI evaluation returned an unexpected format.");
+  }
+
+  return result;
+}
+
+function updateEvaluationReport(previousScore, nextScore, deal = getActiveDeal(), evaluation = null) {
   const hasPreviousScore = typeof previousScore === "number";
   const delta = hasPreviousScore ? nextScore - previousScore : 0;
   const direction = delta > 0 ? "increased" : delta < 0 ? "decreased" : "held";
@@ -332,14 +380,16 @@ function updateEvaluationReport(previousScore, nextScore, deal = getActiveDeal()
   }
 
   if (scoreChange) {
-    scoreChange.textContent = hasPreviousScore
+    scoreChange.textContent = evaluation?.summary
+      ? evaluation.summary
+      : hasPreviousScore
       ? `${deal?.name || "Current deal"} score ${direction} from ${previousScore}% to ${nextScore}% after Run ${evaluationRun}. Change: ${displayDelta} points.`
       : `Initial evaluation for ${deal?.name || "the current deal"} generated a ${nextScore}% readiness score. Update the deal or documents and rerun to compare movement.`;
   }
 
   if (findingsList) {
-    findingsList.innerHTML = getFindings(nextScore, deal)
-      .map((finding) => `<li>${finding}</li>`)
+    findingsList.innerHTML = getEvaluationFindings(nextScore, deal, evaluation)
+      .map((finding) => `<li>${escapeHtml(finding)}</li>`)
       .join("");
   }
 
@@ -366,6 +416,7 @@ function updateEvaluationReport(previousScore, nextScore, deal = getActiveDeal()
         ? {
             ...item,
             score: nextScore,
+            evaluation,
             evaluation_run: evaluationRun,
             report_status: "Ready",
             evaluated_at: new Date().toISOString(),
@@ -390,6 +441,54 @@ function renderDocumentList(files) {
   documentList.innerHTML = files
     .map((file) => `<p><strong>${escapeHtml(file.name || file)}</strong><span>Uploaded</span></p>`)
     .join("");
+}
+
+function renderKycDocumentList(files) {
+  if (!kycDocumentList) {
+    return;
+  }
+
+  if (!files.length) {
+    kycDocumentList.innerHTML = '<p><strong>No KYC documents selected</strong><span>Required before AI review</span></p>';
+    return;
+  }
+
+  kycDocumentList.innerHTML = files
+    .map((file) => `<p><strong>${escapeHtml(file.name || file)}</strong><span>Ready for AI review</span></p>`)
+    .join("");
+}
+
+function renderQuestionnaireReview() {
+  if (!questionnaireReviewBody) {
+    return;
+  }
+
+  const payload = readStoredJson("nfelOnboardingPayload");
+  const confirmation = readStoredJson("nfelOnboardingConfirmation");
+  const kycEvaluation = readStoredJson("nfelKycEvaluation");
+
+  if (!payload) {
+    return;
+  }
+
+  updateText(questionnaireReviewStatus, kycEvaluation?.package_status ? formatLabel(kycEvaluation.package_status) : "Submitted");
+
+  const displayFields = Object.entries(payload).filter(([key]) => !["signature_image"].includes(key));
+  const signatureMarkup = confirmation?.signature_image
+    ? `<section class="review-section"><h4>Signature Confirmation</h4><p><strong>Confirmation ID</strong><span>${escapeHtml(confirmation.confirmation_id || "--")}</span></p><p><strong>Signed At</strong><span>${escapeHtml(formatDateTime(confirmation.signed_at))}</span></p><img class="review-signature" src="${confirmation.signature_image}" alt="Saved drawn signature" /></section>`
+    : "";
+  const kycMarkup = kycEvaluation
+    ? `<section class="review-section"><h4>KYC AI Review</h4><p><strong>Status</strong><span>${escapeHtml(formatLabel(kycEvaluation.package_status || "submitted"))}</span></p><p><strong>Score</strong><span>${escapeHtml(kycEvaluation.readiness_score ?? "--")}%</span></p><p><strong>Summary</strong><span>${escapeHtml(kycEvaluation.summary || "--")}</span></p>${renderReviewList("Reviewed Documents", kycEvaluation.reviewed_documents)}${renderDocumentChecks(kycEvaluation.document_checks)}${renderReviewList("Missing or Unclear Items", kycEvaluation.missing_or_unclear_items)}${renderReviewList("Recommended Next Steps", kycEvaluation.recommended_next_steps)}</section>`
+    : `<section class="review-section"><h4>KYC AI Review</h4><p><strong>Status</strong><span>Not available</span></p></section>`;
+
+  questionnaireReviewBody.innerHTML = `
+    <section class="review-section">
+      <h4>Questionnaire Fields</h4>
+      ${displayFields.map(([key, value]) => `<p><strong>${escapeHtml(formatLabel(key))}</strong><span>${escapeHtml(formatFieldValue(value))}</span></p>`).join("")}
+    </section>
+    ${kycMarkup}
+    ${signatureMarkup}
+  `;
 }
 
 function startNewDealDraft() {
@@ -476,6 +575,93 @@ function saveDealWorkspace(asRevision = false, sourceDeal = null) {
   renderSavedDeals();
   updateEvaluationDealSummary(deal);
   return deal;
+}
+
+async function saveDealDocumentsForEvaluation(deal, files) {
+  if (!files.length) {
+    return null;
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+
+  if (totalBytes > maxLocalDocumentBytes) {
+    throw new Error("Documents are too large for this local prototype. Upload a smaller set under 18 MB total.");
+  }
+
+  const documents = await Promise.all(files.map(readDocumentForUpload));
+  const response = await fetch("/api/save-deal-documents", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dealId: deal.id, documents }),
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result.error || "Documents could not be saved for AI review.");
+  }
+
+  return result;
+}
+
+async function saveKycDocumentsForEvaluation(files) {
+  if (!files.length) {
+    return null;
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+
+  if (totalBytes > maxLocalDocumentBytes) {
+    throw new Error("KYC documents are too large for this local prototype. Upload a smaller set under 18 MB total.");
+  }
+
+  const documents = await Promise.all(files.map(readDocumentForUpload));
+  const response = await fetch("/api/save-kyc-documents", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ documents }),
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result.error || "KYC documents could not be saved for AI review.");
+  }
+
+  return result;
+}
+
+async function requestKycEvaluation(questionnaire) {
+  const { signature_image, ...questionnaireForReview } = questionnaire;
+  const response = await fetch("/api/evaluate-kyc", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ questionnaire: questionnaireForReview }),
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result.error || "OpenAI KYC evaluation failed.");
+  }
+
+  return result;
+}
+
+function readDocumentForUpload(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      resolve({
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        data: result.includes(",") ? result.split(",")[1] : result,
+      });
+    };
+
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+    reader.readAsDataURL(file);
+  });
 }
 
 function populateDealForm(deal) {
@@ -649,7 +835,7 @@ function applyOnboardingState() {
   });
 
   if (!complete && document.querySelector(".onboarding-gated")) {
-    updateText(toolNote, "You can draft deal details now. Complete the questionnaire before submitting documents or running evaluation.");
+    updateText(toolNote, "Questionnaire is optional for now. You can submit deal details and documents directly.");
   }
 }
 
@@ -820,13 +1006,13 @@ function getChatResponse(question) {
       name: "services",
       weight: 0,
       terms: ["service", "services", "what do you do", "offer", "help with", "trade finance", "import", "export", "banking", "wealth", "capital", "treasury", "letter of credit", "standby"],
-      response: 'N.F.EL supports trade finance advisory, commercial banking strategy, wealth and owner planning, strategic alliances, and credit enhancement structures. For a clean overview, start here: <a href="services.html">View Services</a>. If you already have a transaction in mind, use <a href="#contact">Schedule Consultation</a>.',
+      response: 'N.F.EL supports trade finance advisory, commercial banking strategy, wealth and owner planning, strategic alliances, and credit enhancement structures. For a clean overview, start here: <a href="services.html">View Services</a>. If you already have a transaction in mind, use <a href="consultation.html">Schedule Consultation</a>.',
     },
     {
       name: "credit-enhancement",
       weight: 0,
       terms: ["credit enhancement", "proof of funds", "pof", "sblc", "standby letter", "bank instrument", "collateral", "balance sheet", "enhancement", "funding conversations"],
-      response: 'Credit enhancement support is for clients preparing proof-of-funds, balance-sheet positioning, or commercial funding conversations. N.F.EL can help organize the structure, required documentation, and readiness narrative. <a href="services.html">Review Credit Enhancement Services</a> or <a href="#contact">request a consultation</a>.',
+      response: 'Credit enhancement support is for clients preparing proof-of-funds, balance-sheet positioning, or commercial funding conversations. N.F.EL can help organize the structure, required documentation, and readiness narrative. <a href="services.html">Review Credit Enhancement Services</a> or <a href="consultation.html">request a consultation</a>.',
     },
     {
       name: "portal",
@@ -856,7 +1042,7 @@ function getChatResponse(question) {
       name: "contact",
       weight: 0,
       terms: ["contact", "consult", "consultation", "schedule", "call", "meeting", "introduction", "intro", "speak", "talk", "email"],
-      response: 'For a confidential consultation, share the opportunity, transaction type, or alliance objective in the contact form. <a href="#contact">Go to Contact</a>.',
+      response: 'For a confidential consultation, share the opportunity, transaction type, or alliance objective in the request form. <a href="consultation.html">Schedule Consultation</a>.',
     },
     {
       name: "approach",
@@ -877,10 +1063,10 @@ function getChatResponse(question) {
   }
 
   if (normalized.length < 18) {
-    return 'I can help route you quickly. Are you looking for <a href="services.html">services</a>, <a href="login.html">client portal access</a>, <a href="faq.html">FAQ</a>, or a <a href="#contact">consultation</a>?';
+    return 'I can help route you quickly. Are you looking for <a href="services.html">services</a>, <a href="login.html">client portal access</a>, <a href="faq.html">FAQ</a>, or a <a href="consultation.html">consultation</a>?';
   }
 
-  return 'I may need one more detail to point you to the right place. If this is about a transaction, I can help with services or consultation. If you are already a client, I can send you to the portal for onboarding, assets, evaluations, messages, and account access. <a href="services.html">Services</a> | <a href="login.html">Client Portal</a> | <a href="#contact">Contact</a>';
+  return 'I may need one more detail to point you to the right place. If this is about a transaction, I can help with services or consultation. If you are already a client, I can send you to the portal for onboarding, assets, evaluations, messages, and account access. <a href="services.html">Services</a> | <a href="login.html">Client Portal</a> | <a href="consultation.html">Consultation</a>';
 }
 
 function normalizeChatText(text) {
@@ -917,10 +1103,59 @@ function getSavedDocumentNames() {
   }
 }
 
+function readStoredJson(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+}
+
 function updateText(element, value) {
   if (element) {
     element.textContent = value;
   }
+}
+
+function formatLabel(value) {
+  return String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatFieldValue(value) {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return value || "--";
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "--";
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function renderReviewList(title, items) {
+  if (!Array.isArray(items) || !items.length) {
+    return "";
+  }
+
+  return `<div class="review-list"><h5>${escapeHtml(title)}</h5><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`;
+}
+
+function renderDocumentChecks(checks) {
+  if (!Array.isArray(checks) || !checks.length) {
+    return "";
+  }
+
+  return `<div class="review-list"><h5>Document Checks</h5><ul>${checks
+    .map((check) => `<li><strong>${escapeHtml(check.document_name || "Document")}</strong>: ${escapeHtml(check.notes || "")}</li>`)
+    .join("")}</ul></div>`;
 }
 
 function escapeHtml(value) {
@@ -957,4 +1192,16 @@ function getFindings(score) {
     "Trade corridor, counterparty, and currency assumptions need clearer documentation.",
     "Recommended next step is revising documents and rerunning the AI evaluation.",
   ];
+}
+
+function getEvaluationFindings(score, deal, evaluation) {
+  if (!evaluation) {
+    return getFindings(score, deal);
+  }
+
+  return [
+    ...(evaluation.key_findings || []),
+    ...(evaluation.risk_flags || []).map((flag) => `Risk flag: ${flag}`),
+    ...(evaluation.recommended_next_steps || []).map((step) => `Next step: ${step}`),
+  ].slice(0, 10);
 }

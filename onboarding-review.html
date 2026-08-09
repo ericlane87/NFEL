@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Questionnaire Review | N.F.EL Strategic Alliances</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dashboard-page">
+    <aside class="dashboard-sidebar" aria-label="Client portal navigation">
+      <a class="brand dashboard-brand" href="index.html" aria-label="N.F.EL Strategic Alliances home"><span class="brand-mark">N</span><span><strong>N.F.EL Strategic Alliances</strong><small>Client Portal</small></span></a>
+      <nav class="dashboard-nav" aria-label="Dashboard navigation">
+        <a href="dashboard.html">Overview</a>
+        <a href="client-account.html" class="is-active">My Account</a>
+        <a href="portal-assets.html">My Assets</a>
+        <a href="portal-evaluation.html">Evaluation</a>
+        <a href="portal-messages.html">Messages</a>
+      </nav>
+      <a class="dashboard-signout" href="login.html">Sign Out</a>
+    </aside>
+    <main class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Questionnaire</p>
+          <h1>Review and print</h1>
+          <p>Review the saved onboarding questionnaire, KYC document review result, and signature confirmation.</p>
+        </div>
+        <button class="button primary print-questionnaire-button" type="button">Print Copy</button>
+      </header>
+      <section class="dashboard-panel wide-panel questionnaire-review-panel">
+        <div class="panel-header"><div><p class="panel-kicker">Saved Record</p><h3>Client Questionnaire</h3></div><span class="questionnaire-review-status">Not Submitted</span></div>
+        <div class="questionnaire-review-body">
+          <p class="empty-review"><strong>No questionnaire is saved yet.</strong><span>Complete onboarding first to create a printable record.</span></p>
+        </div>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>
