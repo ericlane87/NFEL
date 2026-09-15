@@ -176,19 +176,29 @@ dealTool?.addEventListener("submit", async (event) => {
   }
 
   button.disabled = true;
-  button.textContent = "Saving...";
+  button.textContent = selectedFiles.length ? "Reviewing..." : "Saving...";
 
   try {
-    await saveDealDocumentsForEvaluation(deal, selectedFiles);
-    updateText(toolNote, `${deal.name} saved with ${deal.documents?.length || 0} document reference${deal.documents?.length === 1 ? "" : "s"}. You can now run the evaluation.`);
-    updateText(evaluationStatus, "Ready");
+    if (selectedFiles.length) {
+      evaluationRun = (deal.evaluation_run || evaluationRun || 0) + 1;
+      const evaluation = await requestDealEvaluation(deal, selectedFiles);
+      currentScore = evaluation.readiness_score;
+      updateEvaluationReport(null, currentScore, deal, evaluation);
+      renderActiveDealGuidance(getActiveDeal());
+      updateText(toolNote, `${deal.name} saved and reviewed. The original files were not stored.`);
+      updateText(evaluationStatus, "Complete");
+    } else {
+      updateText(toolNote, `${deal.name} saved without documents. Upload files and run AI review when ready.`);
+      updateText(evaluationStatus, "Ready");
+    }
+
     setTimeout(() => {
       window.location.href = "portal-evaluation.html";
     }, 500);
   } catch (error) {
     console.error(error);
-    updateText(toolNote, error.message || "Deal saved, but the documents could not be prepared for AI review.");
-    updateText(evaluationStatus, "Document Save Needed");
+    updateText(toolNote, error.message || "Deal saved, but AI review could not be completed.");
+    updateText(evaluationStatus, "Review Needed");
   } finally {
     button.disabled = false;
     button.textContent = "Save Deal Workspace";
@@ -203,11 +213,18 @@ duplicateDealButton?.addEventListener("click", async () => {
   }
 
   try {
-    await saveDealDocumentsForEvaluation(deal, selectedFiles);
-    updateText(toolNote, `${deal.name} saved as Revision ${deal.revision} with documents ready for AI review.`);
+    if (selectedFiles.length) {
+      evaluationRun = (deal.evaluation_run || evaluationRun || 0) + 1;
+      const evaluation = await requestDealEvaluation(deal, selectedFiles);
+      currentScore = evaluation.readiness_score;
+      updateEvaluationReport(null, currentScore, deal, evaluation);
+      renderActiveDealGuidance(getActiveDeal());
+    }
+
+    updateText(toolNote, selectedFiles.length ? `${deal.name} saved as Revision ${deal.revision} and reviewed without storing original files.` : `${deal.name} saved as Revision ${deal.revision}.`);
   } catch (error) {
     console.error(error);
-    updateText(toolNote, error.message || `${deal.name} revision saved, but documents could not be prepared for AI review.`);
+    updateText(toolNote, error.message || `${deal.name} revision saved, but AI review could not be completed.`);
   }
 });
 
@@ -225,9 +242,8 @@ resubmitDealButton?.addEventListener("click", async () => {
   updateText(toolNote, "Saving updates and running AI review against the current deal package.");
 
   try {
-    await saveDealDocumentsForEvaluation(deal, selectedFiles);
     evaluationRun = (deal.evaluation_run || evaluationRun || 0) + 1;
-    const evaluation = await requestDealEvaluation(deal);
+    const evaluation = await requestDealEvaluation(deal, selectedFiles);
     currentScore = evaluation.readiness_score;
     updateEvaluationReport(previousScore, currentScore, deal, evaluation);
     renderActiveDealGuidance(getActiveDeal());
@@ -263,7 +279,7 @@ runEvaluationButton?.addEventListener("click", async () => {
 
   try {
     evaluationRun += 1;
-    const evaluation = await requestDealEvaluation(activeDeal);
+    const evaluation = await requestDealEvaluation(activeDeal, []);
     currentScore = evaluation.readiness_score;
     updateEvaluationReport(previousScore, currentScore, activeDeal, evaluation);
     renderActiveDealGuidance(getActiveDeal());
@@ -364,8 +380,7 @@ onboardingForm?.addEventListener("submit", async (event) => {
   updateText(onboardingNote, "Saving questionnaire and sending KYC documents to AI review.");
 
   try {
-    await saveKycDocumentsForEvaluation(kycFiles);
-    const kycEvaluation = await requestKycEvaluation(payload);
+    const kycEvaluation = await requestKycEvaluation(payload, kycFiles);
     localStorage.setItem("nfelKycEvaluation", JSON.stringify(kycEvaluation));
   } catch (error) {
     console.error(error);
@@ -456,11 +471,13 @@ function deleteDealWorkspace(deal) {
   updateText(toolNote, `${deal.name || "Deal"} deleted.`);
 }
 
-async function requestDealEvaluation(deal) {
+async function requestDealEvaluation(deal, files = []) {
+  deal.evaluation_run = evaluationRun;
+  const documents = await prepareDocumentsForEvaluation(files, "Documents");
   const response = await fetch("/api/evaluate-deal", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deal }),
+    headers: await getAuthorizedJsonHeaders(),
+    body: JSON.stringify({ deal, documents }),
   });
   const result = await response.json().catch(() => ({}));
 
@@ -744,63 +761,26 @@ function saveDealWorkspace(asRevision = false, sourceDeal = null) {
 }
 
 async function saveDealDocumentsForEvaluation(deal, files) {
-  if (!files.length) {
-    return null;
-  }
-
-  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-
-  if (totalBytes > maxLocalDocumentBytes) {
-    throw new Error("Documents are too large for this local prototype. Upload a smaller set under 18 MB total.");
-  }
-
-  const documents = await Promise.all(files.map(readDocumentForUpload));
-  const response = await fetch("/api/save-deal-documents", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dealId: deal.id, documents }),
-  });
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(result.error || "Documents could not be saved for AI review.");
-  }
-
-  return result;
+  return {
+    temporary: true,
+    documents: files.map((file) => ({ name: file.name, type: file.type || "application/octet-stream", size: file.size })),
+  };
 }
 
 async function saveKycDocumentsForEvaluation(files) {
-  if (!files.length) {
-    return null;
-  }
-
-  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-
-  if (totalBytes > maxLocalDocumentBytes) {
-    throw new Error("KYC documents are too large for this local prototype. Upload a smaller set under 18 MB total.");
-  }
-
-  const documents = await Promise.all(files.map(readDocumentForUpload));
-  const response = await fetch("/api/save-kyc-documents", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ documents }),
-  });
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(result.error || "KYC documents could not be saved for AI review.");
-  }
-
-  return result;
+  return {
+    temporary: true,
+    documents: files.map((file) => ({ name: file.name, type: file.type || "application/octet-stream", size: file.size })),
+  };
 }
 
-async function requestKycEvaluation(questionnaire) {
+async function requestKycEvaluation(questionnaire, files = []) {
   const { signature_image, ...questionnaireForReview } = questionnaire;
+  const documents = await prepareDocumentsForEvaluation(files, "KYC documents");
   const response = await fetch("/api/evaluate-kyc", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ questionnaire: questionnaireForReview }),
+    headers: await getAuthorizedJsonHeaders(),
+    body: JSON.stringify({ questionnaire: questionnaireForReview, documents }),
   });
   const result = await response.json().catch(() => ({}));
 
@@ -809,6 +789,33 @@ async function requestKycEvaluation(questionnaire) {
   }
 
   return result;
+}
+
+async function prepareDocumentsForEvaluation(files, label) {
+  if (!files.length) {
+    return [];
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+
+  if (totalBytes > maxLocalDocumentBytes) {
+    throw new Error(`${label} are too large. Upload a smaller set under 18 MB total.`);
+  }
+
+  return Promise.all(files.map(readDocumentForUpload));
+}
+
+async function getAuthorizedJsonHeaders() {
+  const user = firebaseAuth?.currentUser;
+
+  if (!user) {
+    throw new Error("Sign in before submitting documents for AI review.");
+  }
+
+  return {
+    Authorization: `Bearer ${await user.getIdToken()}`,
+    "Content-Type": "application/json",
+  };
 }
 
 function readDocumentForUpload(file) {
@@ -1355,7 +1362,7 @@ function initializeFirebaseAuth() {
     return;
   }
 
-  firebaseAuth.onAuthStateChanged((user) => {
+  firebaseAuth.onAuthStateChanged(async (user) => {
     if (isDashboardPage && !user) {
       window.location.href = `login.html?next=${encodeURIComponent(getCurrentPageName())}`;
       return;
@@ -1363,6 +1370,11 @@ function initializeFirebaseAuth() {
 
     if (isLoginPage && user) {
       window.location.href = getLoginRedirectTarget();
+      return;
+    }
+
+    if (isDashboardPage && user) {
+      await loadDealsFromServer();
     }
   });
 
@@ -1409,6 +1421,39 @@ function getFirebaseAuthMessage(error) {
   }
 
   return "Login could not be completed. Try again.";
+}
+
+async function loadDealsFromServer() {
+  try {
+    const response = await fetch("/api/deals", {
+      method: "GET",
+      headers: await getAuthorizedJsonHeaders(),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(result.error || "Could not load saved deals.");
+    }
+
+    if (Array.isArray(result.deals) && result.deals.length) {
+      saveDeals(result.deals);
+
+      if (!localStorage.getItem("nfelActiveDealId")) {
+        localStorage.setItem("nfelActiveDealId", result.deals[0].id);
+      }
+
+      const activeDeal = getActiveDeal();
+      populateDealForm(activeDeal);
+      renderSavedDeals();
+      updateEvaluationDealSummary(activeDeal);
+      renderActiveDealGuidance(activeDeal);
+      updateText(activeDealLabel, activeDeal ? `Revision ${activeDeal.revision || 1}` : "New Draft");
+    }
+  } catch (error) {
+    console.error(error);
+    updateText(toolNote, error.message || "Saved deals could not be loaded.");
+    updateText(evaluationNote, error.message || "Saved deals could not be loaded.");
+  }
 }
 
 function saveDocumentNames(names) {

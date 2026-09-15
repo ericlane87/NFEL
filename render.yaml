@@ -10,3 +10,7 @@ services:
         value: gpt-5
       - key: OPENAI_API_KEY
         sync: false
+      - key: FIREBASE_PROJECT_ID
+        value: nfel-tradefinance-portal
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
