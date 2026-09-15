@@ -12,6 +12,18 @@ services:
         sync: false
       - key: FIREBASE_PROJECT_ID
         value: nfel-tradefinance-portal
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        value: nfel-tradefinance-portal.firebaseapp.com
+      - key: FIREBASE_STORAGE_BUCKET
+        value: nfel-tradefinance-portal.firebasestorage.app
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        value: "357997752401"
+      - key: FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_MEASUREMENT_ID
+        value: G-M0RQ2SHDQ6
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_BASE64

@@ -139,6 +139,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && req.url === "/firebase-config.js") {
+      serveFirebaseConfig(res);
+      return;
+    }
+
     if (req.method !== "GET" && req.method !== "HEAD") {
       sendJson(res, 405, { error: "Method not allowed" });
       return;
@@ -596,6 +601,21 @@ function serveStatic(req, res) {
 function sendJson(res, status, payload) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
+}
+
+function serveFirebaseConfig(res) {
+  const firebaseConfig = {
+    apiKey: process.env.FIREBASE_API_KEY || "",
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${firebaseProjectId}.firebaseapp.com`,
+    projectId: firebaseProjectId,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "",
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "",
+    appId: process.env.FIREBASE_APP_ID || "",
+    measurementId: process.env.FIREBASE_MEASUREMENT_ID || "",
+  };
+
+  res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+  res.end(`const firebaseConfig = ${JSON.stringify(firebaseConfig)};\n\nif (window.firebase && !window.firebase.apps.length) {\n  window.firebase.initializeApp(firebaseConfig);\n}\n\nwindow.nfelFirebase = {\n  auth: window.firebase?.auth ? window.firebase.auth() : null,\n};\n`);
 }
 
 function sendParsedOpenAiJson(res, body, fallbackMessage, extraFields = {}) {
