@@ -14,3 +14,5 @@ services:
         value: nfel-tradefinance-portal
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false
