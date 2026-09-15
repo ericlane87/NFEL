@@ -39,6 +39,8 @@ const chatInput = document.querySelector("#chat-input");
 const chatSuggestions = document.querySelectorAll("[data-chat-question]");
 const duplicateDealButton = document.querySelector(".duplicate-deal-button");
 const uploadTriggerButton = document.querySelector(".upload-trigger-button");
+const resubmitDealButton = document.querySelector(".resubmit-deal-button");
+const signOutButtons = document.querySelectorAll(".dashboard-signout");
 const savedDealList = document.querySelector(".saved-deal-list");
 const currentDealName = document.querySelector(".current-deal-name");
 const currentDealAmount = document.querySelector(".current-deal-amount");
@@ -52,9 +54,14 @@ const progressPercent = document.querySelector(".progress-percent");
 const progressLabel = document.querySelector(".progress-label");
 const evaluationDealAction = document.querySelector(".evaluation-deal-action");
 const evaluationReviseAction = document.querySelector(".evaluation-revise-action");
+const activeDealGuidance = document.querySelector(".active-deal-guidance");
+const adminReadinessStatus = document.querySelector(".admin-readiness-status");
 const questionnaireReviewBody = document.querySelector(".questionnaire-review-body");
 const questionnaireReviewStatus = document.querySelector(".questionnaire-review-status");
 const printQuestionnaireButton = document.querySelector(".print-questionnaire-button");
+const firebaseAuth = window.nfelFirebase?.auth || null;
+const isLoginPage = document.body?.classList.contains("login-page");
+const isDashboardPage = document.body?.classList.contains("dashboard-page");
 
 let evaluationRun = 0;
 let currentScore = null;
@@ -62,15 +69,45 @@ let documentRevision = 1;
 let hasDrawnSignature = false;
 const maxLocalDocumentBytes = 18 * 1024 * 1024;
 
+initializeFirebaseAuth();
 restorePortalState();
 applyOnboardingState();
 initializeSignaturePad();
 initializeChat();
 renderQuestionnaireReview();
 
-loginForm?.addEventListener("submit", (event) => {
+loginForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  window.location.href = "dashboard.html";
+
+  if (!firebaseAuth) {
+    updateText(loginForm.querySelector(".login-note"), "Firebase login is not available. Refresh and try again.");
+    return;
+  }
+
+  const button = loginForm.querySelector("button[type='submit']");
+  const email = String(loginForm.elements.email?.value || "").trim();
+  const password = String(loginForm.elements.password?.value || "");
+  const loginNote = loginForm.querySelector(".login-note");
+
+  if (!email || !password) {
+    updateText(loginNote, "Enter your email and password.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Signing in...";
+  updateText(loginNote, "Checking secure access.");
+
+  try {
+    await firebaseAuth.signInWithEmailAndPassword(email, password);
+    window.location.href = getLoginRedirectTarget();
+  } catch (error) {
+    console.error(error);
+    updateText(loginNote, getFirebaseAuthMessage(error));
+  } finally {
+    button.disabled = false;
+    button.textContent = "Log In";
+  }
 });
 
 contactForm?.addEventListener("submit", (event) => {
@@ -174,6 +211,36 @@ duplicateDealButton?.addEventListener("click", async () => {
   }
 });
 
+resubmitDealButton?.addEventListener("click", async () => {
+  const selectedFiles = Array.from(documentUpload?.files || []);
+  const previousScore = currentScore;
+  const deal = saveDealWorkspace(false);
+
+  if (!deal) {
+    return;
+  }
+
+  resubmitDealButton.disabled = true;
+  resubmitDealButton.textContent = "Reviewing...";
+  updateText(toolNote, "Saving updates and running AI review against the current deal package.");
+
+  try {
+    await saveDealDocumentsForEvaluation(deal, selectedFiles);
+    evaluationRun = (deal.evaluation_run || evaluationRun || 0) + 1;
+    const evaluation = await requestDealEvaluation(deal);
+    currentScore = evaluation.readiness_score;
+    updateEvaluationReport(previousScore, currentScore, deal, evaluation);
+    renderActiveDealGuidance(getActiveDeal());
+    updateText(toolNote, getAdminReady(currentScore) ? "Score is 80% or higher. This deal is ready for the future admin dashboard." : "AI review complete. Review the action items, upload new documents, and resubmit when ready.");
+  } catch (error) {
+    console.error(error);
+    updateText(toolNote, error.message || "AI review could not be completed. Check the server and API key.");
+  } finally {
+    resubmitDealButton.disabled = false;
+    resubmitDealButton.textContent = "Save Updates and Run AI Review";
+  }
+});
+
 runEvaluationButton?.addEventListener("click", async () => {
   const activeDeal = getActiveDeal();
 
@@ -199,6 +266,7 @@ runEvaluationButton?.addEventListener("click", async () => {
     const evaluation = await requestDealEvaluation(activeDeal);
     currentScore = evaluation.readiness_score;
     updateEvaluationReport(previousScore, currentScore, activeDeal, evaluation);
+    renderActiveDealGuidance(getActiveDeal());
     completeEvaluationProgress();
 
     runEvaluationButton.disabled = false;
@@ -223,31 +291,36 @@ reviseDocumentsButtons.forEach((button) => {
 
 savedDealList?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-deal-action]");
-
-  if (!button) {
-    return;
-  }
-
-  const deal = getDeals().find((item) => item.id === button.dataset.dealId);
+  const dealCard = event.target.closest(".saved-deal");
+  const dealId = button?.dataset.dealId || dealCard?.dataset.dealId;
+  const deal = getDeals().find((item) => item.id === dealId);
 
   if (!deal) {
     return;
   }
 
-  localStorage.setItem("nfelActiveDealId", deal.id);
-  populateDealForm(deal);
-  renderDocumentList(deal.documents || []);
-  renderSavedDeals();
-  updateEvaluationDealSummary(deal);
-  updateText(activeDealLabel, `Revision ${deal.revision || 1}`);
+  if (button?.dataset.dealAction === "delete") {
+    const confirmed = window.confirm(`Delete ${deal.name || "this deal"}? This removes the saved workspace and evaluation history from this browser.`);
 
-  if (button.dataset.dealAction === "revision") {
+    if (!confirmed) {
+      return;
+    }
+
+    deleteDealWorkspace(deal);
+    return;
+  }
+
+  if (button?.dataset.dealAction === "revision") {
+    loadDealIntoWorkspace(deal);
     const revised = saveDealWorkspace(true, deal);
     if (!revised) {
       return;
     }
+    loadDealIntoWorkspace(revised, false);
+    renderActiveDealGuidance(revised);
     updateText(toolNote, `${revised.name} copied into Revision ${revised.revision}. Update details or documents before evaluation.`);
   } else {
+    loadDealIntoWorkspace(deal);
     updateText(toolNote, `${deal.name} loaded. You can modify any field, replace files, and save again.`);
   }
 });
@@ -350,6 +423,39 @@ function calculateScore(previousScore, deal = getActiveDeal()) {
   return Math.max(61, Math.min(96, nextScore));
 }
 
+function deleteDealWorkspace(deal) {
+  const deals = getDeals().filter((item) => item.id !== deal.id);
+  saveDeals(deals);
+  localStorage.removeItem(getDealHistoryKey(deal));
+
+  if (localStorage.getItem("nfelActiveDealId") === deal.id) {
+    localStorage.removeItem("nfelActiveDealId");
+    localStorage.removeItem("nfelDocumentNames");
+    localStorage.removeItem("nfelDealNotes");
+    localStorage.removeItem("nfelCurrentScore");
+    localStorage.removeItem("nfelEvaluationRun");
+    localStorage.setItem("nfelReportStatus", "Draft");
+
+    if (dealTool) {
+      dealTool.reset();
+    }
+
+    if (documentUpload) {
+      documentUpload.value = "";
+    }
+
+    currentScore = null;
+    evaluationRun = 0;
+    renderDocumentList([]);
+    updateEvaluationDealSummary(null);
+    renderActiveDealGuidance(null);
+    updateText(activeDealLabel, "New Draft");
+  }
+
+  renderSavedDeals();
+  updateText(toolNote, `${deal.name || "Deal"} deleted.`);
+}
+
 async function requestDealEvaluation(deal) {
   const response = await fetch("/api/evaluate-deal", {
     method: "POST",
@@ -403,12 +509,13 @@ function updateEvaluationReport(previousScore, nextScore, deal = getActiveDeal()
     localStorage.setItem(getDealHistoryKey(deal), historyList.innerHTML);
   }
 
-  updateText(reportStatus, "Ready");
-  updateText(stripReportStatus, "Export Ready");
+  const reportLabel = getAdminReady(nextScore) ? "Ready for Admin" : "Needs Revision";
+  updateText(reportStatus, reportLabel);
+  updateText(stripReportStatus, reportLabel);
   updateText(riskCount, nextScore >= 88 ? "1 Open" : nextScore >= 76 ? "3 Open" : "5 Open");
   localStorage.setItem("nfelCurrentScore", String(nextScore));
   localStorage.setItem("nfelEvaluationRun", String(evaluationRun));
-  localStorage.setItem("nfelReportStatus", "Ready");
+  localStorage.setItem("nfelReportStatus", reportLabel);
 
   if (deal) {
     const deals = getDeals().map((item) =>
@@ -418,7 +525,7 @@ function updateEvaluationReport(previousScore, nextScore, deal = getActiveDeal()
             score: nextScore,
             evaluation,
             evaluation_run: evaluationRun,
-            report_status: "Ready",
+            report_status: reportLabel,
             evaluated_at: new Date().toISOString(),
           }
         : item
@@ -456,6 +563,64 @@ function renderKycDocumentList(files) {
   kycDocumentList.innerHTML = files
     .map((file) => `<p><strong>${escapeHtml(file.name || file)}</strong><span>Ready for AI review</span></p>`)
     .join("");
+}
+
+function renderActiveDealGuidance(deal = getActiveDeal()) {
+  if (!activeDealGuidance) {
+    return;
+  }
+
+  if (!deal) {
+    updateText(adminReadinessStatus, "No Deal Selected");
+    activeDealGuidance.innerHTML = '<p class="empty-guidance"><strong>No action items yet.</strong><span>Open a saved deal or create a new deal to begin the review cycle.</span></p>';
+    return;
+  }
+
+  const score = Number(deal.score || 0);
+  const ready = getAdminReady(score);
+  const evaluation = deal.evaluation || null;
+  const actionItems = getDealActionItems(deal);
+
+  updateText(adminReadinessStatus, ready ? "Ready for Admin" : score ? `Needs Revision (${score}%)` : "Not Evaluated");
+
+  activeDealGuidance.innerHTML = `
+    <div class="guidance-summary">
+      <p><strong>${escapeHtml(deal.name || "Untitled Deal")}</strong><span>${score ? `${score}% current score` : "No AI score yet"}</span></p>
+      <p><strong>${ready ? "Admin Queue" : "Review Cycle"}</strong><span>${ready ? "Score threshold met. Admin dashboard routing can be added next." : "Upload new documents, update fields, and rerun AI review until the score reaches 80%."}</span></p>
+    </div>
+    ${evaluation?.summary ? `<p class="guidance-copy">${escapeHtml(evaluation.summary)}</p>` : ""}
+    <ul class="guidance-action-list">
+      ${actionItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function getDealActionItems(deal) {
+  const evaluation = deal?.evaluation;
+  const items = [
+    ...(evaluation?.missing_form_fields || []).map((item) => `Fill field: ${item}`),
+    ...(evaluation?.missing_documents || []).map((item) => `Upload or confirm document: ${item}`),
+    ...(evaluation?.recommended_next_steps || []),
+    ...(evaluation?.risk_flags || []).map((item) => `Resolve risk flag: ${item}`),
+  ].filter(Boolean);
+
+  if (getAdminReady(Number(deal?.score || 0))) {
+    return ["Score is 80% or higher. Keep the latest documents on file for the future admin dashboard."];
+  }
+
+  if (items.length) {
+    return items.slice(0, 8);
+  }
+
+  return [
+    "Run AI review to generate action items for this deal.",
+    "Upload revised or missing documents when available.",
+    "Use Save Updates and Run AI Review to rescore the current package.",
+  ];
+}
+
+function getAdminReady(score) {
+  return Number(score || 0) >= 80;
 }
 
 function renderQuestionnaireReview() {
@@ -511,6 +676,7 @@ function startNewDealDraft() {
   renderDocumentList([]);
   renderSavedDeals();
   updateEvaluationDealSummary(null);
+  renderActiveDealGuidance(null);
   updateText(activeDealLabel, "New Draft");
   updateText(toolNote, "New deal draft started. Add a deal name, upload up to 20 documents, then save the workspace.");
 }
@@ -683,6 +849,95 @@ function populateDealForm(deal) {
   });
 }
 
+function loadDealIntoWorkspace(deal, scrollToReview = true) {
+  if (!deal) {
+    return;
+  }
+
+  localStorage.setItem("nfelActiveDealId", deal.id);
+  currentScore = typeof deal.score === "number" ? deal.score : null;
+  evaluationRun = Number(deal.evaluation_run || 0);
+  populateDealForm(deal);
+  renderDocumentList(deal.documents || []);
+  renderSavedDeals();
+  updateEvaluationDealSummary(deal);
+  renderActiveDealGuidance(deal);
+  highlightDealActionItems(deal);
+  updateText(activeDealLabel, `Revision ${deal.revision || 1}`);
+
+  const status = deal.report_status || (getAdminReady(deal.score) ? "Ready for Admin" : deal.score ? "Needs Revision" : "Needs Review");
+  updateText(reportStatus, status);
+  updateText(stripReportStatus, status);
+
+  if (scrollToReview) {
+    activeDealGuidance?.closest(".dashboard-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function highlightDealActionItems(deal) {
+  if (!dealTool) {
+    return;
+  }
+
+  dealTool.querySelectorAll(".needs-attention").forEach((element) => {
+    element.classList.remove("needs-attention");
+  });
+
+  const missingFieldNames = new Set((deal?.evaluation?.missing_form_fields || []).flatMap(resolveDealFieldNames));
+  const missingDocumentNames = new Set((deal?.evaluation?.missing_documents || []).flatMap(resolveDealFieldNames));
+
+  [...missingFieldNames, ...missingDocumentNames].forEach((name) => {
+    const field = dealTool.elements[name];
+    const wrapper = field?.closest("label") || field?.closest("fieldset");
+
+    if (wrapper) {
+      wrapper.classList.add("needs-attention");
+    }
+  });
+}
+
+function resolveDealFieldNames(label) {
+  const normalized = normalizeText(label);
+  const matches = [];
+  const fieldMap = {
+    deal_name: ["deal name", "name"],
+    deal_type: ["deal type", "type"],
+    deal_amount: ["requested amount", "amount", "value"],
+    deal_currency: ["currency"],
+    buyer: ["buyer", "offtaker", "applicant"],
+    seller: ["seller", "supplier", "beneficiary"],
+    origin_country: ["origin country", "country of origin", "origin"],
+    destination_country: ["destination country", "destination"],
+    payment_terms: ["payment terms", "draw terms", "payment"],
+    instrument: ["trade instrument", "instrument", "sblc", "standby", "guarantee", "letter of credit"],
+    incoterms: ["incoterms", "fob", "cif", "exw", "ddp"],
+    closing_date: ["target closing", "closing date", "expiry", "maturity", "issue date"],
+    deal_notes: ["deal summary", "risk notes", "notes", "summary"],
+    doc_purchase_order: ["purchase order", "contract"],
+    doc_invoice: ["invoice", "pro forma", "commercial invoice"],
+    doc_financials: ["financial statements", "bank references", "financials"],
+    doc_kyc: ["kyc", "company registration"],
+    doc_logistics: ["logistics", "insurance", "shipping"],
+    doc_instrument: ["instrument draft", "lc", "sblc", "guarantee", "mt760", "mt799"],
+  };
+
+  Object.entries(fieldMap).forEach(([fieldName, terms]) => {
+    if (terms.some((term) => normalized.includes(term))) {
+      matches.push(fieldName);
+    }
+  });
+
+  return matches;
+}
+
+function normalizeText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function renderSavedDeals() {
   if (!savedDealList) {
     return;
@@ -700,9 +955,9 @@ function renderSavedDeals() {
     .map((deal) => {
       const docs = deal.documents?.length || 0;
       const scoreLabel = deal.score ? `${deal.score}%` : "--";
-      const status = deal.score ? "Evaluated" : deal.report_status || "Needs Review";
+      const status = getAdminReady(deal.score) ? "Ready for Admin" : deal.score ? "Needs Revision" : deal.report_status || "Needs Review";
       const active = deal.id === activeId ? " is-active" : "";
-      return `<article class="saved-deal${active}"><div><span>Revision ${escapeHtml(deal.revision || 1)}</span><strong>${escapeHtml(deal.name)}</strong><p>${escapeHtml(deal.type || "Trade finance")} | ${escapeHtml(deal.amount || "Amount not set")} | ${docs} ${docs === 1 ? "file" : "files"} | ${escapeHtml(status)}</p></div><div class="deal-score-badge"><small>Score</small><strong>${escapeHtml(scoreLabel)}</strong></div><div><button class="button secondary" type="button" data-deal-action="load" data-deal-id="${escapeHtml(deal.id)}">Load</button><button class="button secondary" type="button" data-deal-action="revision" data-deal-id="${escapeHtml(deal.id)}">New Revision</button></div></article>`;
+      return `<article class="saved-deal${active}" data-deal-id="${escapeHtml(deal.id)}"><div><span>Revision ${escapeHtml(deal.revision || 1)}</span><strong>${escapeHtml(deal.name)}</strong><p>${escapeHtml(deal.type || "Trade finance")} | ${escapeHtml(deal.amount || "Amount not set")} | ${docs} ${docs === 1 ? "file" : "files"} | ${escapeHtml(status)}</p></div><div class="deal-score-badge"><small>Score</small><strong>${escapeHtml(scoreLabel)}</strong><em>Click to open</em></div><div><button class="button secondary" type="button" data-deal-action="load" data-deal-id="${escapeHtml(deal.id)}">Open</button><button class="button secondary" type="button" data-deal-action="revision" data-deal-id="${escapeHtml(deal.id)}">New Revision</button><button class="button danger" type="button" data-deal-action="delete" data-deal-id="${escapeHtml(deal.id)}">Delete</button></div></article>`;
     })
     .join("");
 }
@@ -779,6 +1034,7 @@ function restorePortalState() {
   populateDealForm(activeDeal);
   renderSavedDeals();
   updateEvaluationDealSummary(activeDeal);
+  renderActiveDealGuidance(activeDeal);
   updateText(activeDealLabel, activeDeal ? `Revision ${activeDeal.revision || 1}` : "New Draft");
 
   if (savedNames.length) {
@@ -1089,6 +1345,70 @@ function scoreChatIntent(normalized, terms) {
 
     return score;
   }, 0);
+}
+
+function initializeFirebaseAuth() {
+  if (!firebaseAuth) {
+    if (isDashboardPage) {
+      window.location.href = `login.html?next=${encodeURIComponent(getCurrentPageName())}`;
+    }
+    return;
+  }
+
+  firebaseAuth.onAuthStateChanged((user) => {
+    if (isDashboardPage && !user) {
+      window.location.href = `login.html?next=${encodeURIComponent(getCurrentPageName())}`;
+      return;
+    }
+
+    if (isLoginPage && user) {
+      window.location.href = getLoginRedirectTarget();
+    }
+  });
+
+  signOutButtons.forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.preventDefault();
+
+      try {
+        await firebaseAuth.signOut();
+      } finally {
+        window.location.href = "login.html";
+      }
+    });
+  });
+}
+
+function getLoginRedirectTarget() {
+  const nextPage = new URLSearchParams(window.location.search).get("next");
+
+  if (nextPage && /^[a-z0-9-]+\.html$/i.test(nextPage)) {
+    return nextPage;
+  }
+
+  return "dashboard.html";
+}
+
+function getCurrentPageName() {
+  return window.location.pathname.split("/").pop() || "dashboard.html";
+}
+
+function getFirebaseAuthMessage(error) {
+  const code = error?.code || "";
+
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) {
+    return "Email or password did not match an active client account.";
+  }
+
+  if (code.includes("too-many-requests")) {
+    return "Too many attempts. Wait a moment, then try again.";
+  }
+
+  if (code.includes("network-request-failed")) {
+    return "Network error. Check the connection and try again.";
+  }
+
+  return "Login could not be completed. Try again.";
 }
 
 function saveDocumentNames(names) {

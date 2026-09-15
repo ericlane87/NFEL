@@ -33,6 +33,12 @@
           <div class="saved-deal-list"><p class="empty-deals"><strong>No saved deals yet</strong><span>Create a deal request to start the first record</span></p></div>
         </div>
       </section>
+      <section class="dashboard-panel wide-panel active-deal-review-panel">
+        <div class="panel-header"><div><p class="panel-kicker">Review Cycle</p><h3>Current Action Items</h3></div><span class="admin-readiness-status">Not Evaluated</span></div>
+        <div class="active-deal-guidance">
+          <p class="empty-guidance"><strong>No action items yet.</strong><span>Save a deal and run AI review to generate document requests, score movement, and next steps.</span></p>
+        </div>
+      </section>
       <section class="dashboard-panel wide-panel">
         <div class="panel-header"><div><p class="panel-kicker">Current Deal</p><h3>Trade Finance Deal Workspace</h3></div><span class="active-deal-label">New Draft</span></div>
         <div class="tool-layout">
@@ -63,6 +69,7 @@
             <div class="deal-actions wide">
               <button class="button primary" type="submit">Save Deal Workspace</button>
               <button class="button secondary duplicate-deal-button" type="button">Save as New Revision</button>
+              <button class="button secondary resubmit-deal-button" type="button">Save Updates and Run AI Review</button>
             </div>
             <p class="tool-note" role="status" aria-live="polite"></p>
           </form>
@@ -75,6 +82,9 @@
         </div>
       </section>
     </main>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

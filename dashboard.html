@@ -33,10 +33,10 @@
       <header class="dashboard-topbar">
         <div>
           <p class="eyebrow">Client Dashboard</p>
-          <h1>Private client portal</h1>
-          <p>Wealth, commercial banking, and trade finance activity in one advisory workspace.</p>
+          <h1>Deal readiness workspace</h1>
+          <p>Upload trade finance materials, run AI review, and close documentation gaps before advisory escalation.</p>
         </div>
-        <a class="button primary" href="portal-assets.html">Submit for Review</a>
+        <a class="button primary" href="portal-assets.html">Submit Deal for AI Review</a>
       </header>
 
       <section class="onboarding-banner" aria-label="Optional questionnaire">
@@ -68,15 +68,15 @@
           <div class="panel-header">
             <div>
               <p class="panel-kicker">Priority</p>
-              <h3>Submit current deal materials for review.</h3>
+          <h3>Start the review cycle with your current deal package.</h3>
             </div>
             <span>Next Step</span>
           </div>
           <p>
-            Start by uploading the documents you want reviewed. The evaluation page will handle the AI score, findings, report history, and PDF export.
+            Upload what you have now. The portal will score the package, identify missing fields and documents, and let you revise until it is ready for admin review.
           </p>
           <div class="overview-actions">
-            <a class="button primary" href="portal-assets.html">Submit for Review</a>
+            <a class="button primary" href="portal-assets.html">Submit Deal for AI Review</a>
             <a class="button secondary" href="portal-evaluation.html">Open Evaluation</a>
           </div>
         </article>
@@ -119,6 +119,9 @@
         </article>
       </section>
     </main>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
