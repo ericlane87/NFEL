@@ -223,13 +223,33 @@ h1 {
   box-shadow: 0 16px 34px rgba(214, 167, 91, 0.22);
 }
 
-.hero-actions .demo-action {
+.demo-callout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(18, 20, 19, 0.42);
+  border: 1px solid rgba(214, 167, 91, 0.32);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+}
+
+.demo-callout span {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.demo-action {
   color: #f7e6bd;
   background: rgba(214, 167, 91, 0.12);
   border-color: rgba(214, 167, 91, 0.46);
 }
 
-.hero-actions .demo-action:hover {
+.demo-action:hover {
   background: rgba(214, 167, 91, 0.2);
 }
 
@@ -2455,6 +2475,14 @@ textarea:focus {
 
   .hero-actions,
   .button {
+    width: 100%;
+  }
+
+  .demo-callout {
+    width: auto;
+  }
+
+  .demo-callout .button {
     width: 100%;
   }
 
