@@ -44,10 +44,10 @@
           </div>
         </div>
 
-        <form class="login-panel" aria-label="Client login" action="dashboard.html">
+        <form class="login-panel" aria-label="Client login" action="dashboard.html" data-auth-mode="login">
           <div class="panel-header">
-            <h3>Customer Login</h3>
-            <span>Private Access</span>
+            <h3 class="auth-panel-title">Customer Login</h3>
+            <span class="auth-panel-badge">Private Access</span>
           </div>
           <label>
             Email Address
@@ -62,9 +62,13 @@
               <input type="checkbox" name="remember" />
               Remember me
             </label>
-            <a href="consultation.html">Need access?</a>
+            <button class="text-button forgot-password-button" type="button">Forgot password?</button>
           </div>
-          <button class="button primary full" type="submit">Log In</button>
+          <button class="button primary full auth-submit-button" type="submit">Log In</button>
+          <div class="auth-switch">
+            <span class="auth-switch-copy">Don't have an account?</span>
+            <button class="text-button auth-mode-toggle" type="button">Create account</button>
+          </div>
           <p class="login-note" role="status" aria-live="polite"></p>
         </form>
 

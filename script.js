@@ -59,6 +59,12 @@ const adminReadinessStatus = document.querySelector(".admin-readiness-status");
 const questionnaireReviewBody = document.querySelector(".questionnaire-review-body");
 const questionnaireReviewStatus = document.querySelector(".questionnaire-review-status");
 const printQuestionnaireButton = document.querySelector(".print-questionnaire-button");
+const authPanelTitle = document.querySelector(".auth-panel-title");
+const authPanelBadge = document.querySelector(".auth-panel-badge");
+const authSubmitButton = document.querySelector(".auth-submit-button");
+const authModeToggle = document.querySelector(".auth-mode-toggle");
+const authSwitchCopy = document.querySelector(".auth-switch-copy");
+const forgotPasswordButton = document.querySelector(".forgot-password-button");
 const firebaseAuth = window.nfelFirebase?.auth || null;
 const isLoginPage = document.body?.classList.contains("login-page");
 const isDashboardPage = document.body?.classList.contains("dashboard-page");
@@ -70,6 +76,7 @@ let hasDrawnSignature = false;
 const maxLocalDocumentBytes = 18 * 1024 * 1024;
 
 initializeFirebaseAuth();
+initializeAuthPanel();
 restorePortalState();
 applyOnboardingState();
 initializeSignaturePad();
@@ -94,19 +101,26 @@ loginForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  const mode = loginForm.dataset.authMode === "signup" ? "signup" : "login";
+
   button.disabled = true;
-  button.textContent = "Signing in...";
-  updateText(loginNote, "Checking secure access.");
+  button.textContent = mode === "signup" ? "Creating..." : "Signing in...";
+  updateText(loginNote, mode === "signup" ? "Creating secure portal access." : "Checking secure access.");
 
   try {
-    await firebaseAuth.signInWithEmailAndPassword(email, password);
+    if (mode === "signup") {
+      await firebaseAuth.createUserWithEmailAndPassword(email, password);
+    } else {
+      await firebaseAuth.signInWithEmailAndPassword(email, password);
+    }
+
     window.location.href = getLoginRedirectTarget();
   } catch (error) {
     console.error(error);
     updateText(loginNote, getFirebaseAuthMessage(error));
   } finally {
     button.disabled = false;
-    button.textContent = "Log In";
+    button.textContent = mode === "signup" ? "Create Account" : "Log In";
   }
 });
 
@@ -1391,6 +1405,64 @@ function initializeFirebaseAuth() {
   });
 }
 
+function initializeAuthPanel() {
+  if (!loginForm) {
+    return;
+  }
+
+  setAuthMode(loginForm.dataset.authMode || "login");
+
+  authModeToggle?.addEventListener("click", () => {
+    const nextMode = loginForm.dataset.authMode === "signup" ? "login" : "signup";
+    setAuthMode(nextMode);
+    updateText(loginForm.querySelector(".login-note"), "");
+  });
+
+  forgotPasswordButton?.addEventListener("click", async () => {
+    const email = String(loginForm.elements.email?.value || "").trim();
+    const loginNote = loginForm.querySelector(".login-note");
+
+    if (!firebaseAuth) {
+      updateText(loginNote, "Firebase login is not available. Refresh and try again.");
+      return;
+    }
+
+    if (!email) {
+      updateText(loginNote, "Enter your email address first.");
+      return;
+    }
+
+    forgotPasswordButton.disabled = true;
+
+    try {
+      await firebaseAuth.sendPasswordResetEmail(email);
+      updateText(loginNote, "Password reset email sent. Check your inbox.");
+    } catch (error) {
+      console.error(error);
+      updateText(loginNote, getFirebaseAuthMessage(error));
+    } finally {
+      forgotPasswordButton.disabled = false;
+    }
+  });
+}
+
+function setAuthMode(mode) {
+  const isSignup = mode === "signup";
+  loginForm.dataset.authMode = isSignup ? "signup" : "login";
+  updateText(authPanelTitle, isSignup ? "Create Account" : "Customer Login");
+  updateText(authPanelBadge, isSignup ? "New Client Access" : "Private Access");
+  updateText(authSubmitButton, isSignup ? "Create Account" : "Log In");
+  updateText(authSwitchCopy, isSignup ? "Already have an account?" : "Don't have an account?");
+  updateText(authModeToggle, isSignup ? "Log in" : "Create account");
+
+  if (loginForm.elements.password) {
+    loginForm.elements.password.autocomplete = isSignup ? "new-password" : "current-password";
+    loginForm.elements.password.placeholder = isSignup ? "Create password" : "Enter password";
+  }
+
+  forgotPasswordButton?.classList.toggle("is-hidden", isSignup);
+}
+
 function getLoginRedirectTarget() {
   const nextPage = new URLSearchParams(window.location.search).get("next");
 
@@ -1410,6 +1482,18 @@ function getFirebaseAuthMessage(error) {
 
   if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) {
     return "Email or password did not match an active client account.";
+  }
+
+  if (code.includes("email-already-in-use")) {
+    return "An account already exists for this email. Log in instead.";
+  }
+
+  if (code.includes("weak-password")) {
+    return "Use a stronger password with at least 6 characters.";
+  }
+
+  if (code.includes("invalid-email")) {
+    return "Enter a valid email address.";
   }
 
   if (code.includes("too-many-requests")) {

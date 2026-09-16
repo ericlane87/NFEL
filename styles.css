@@ -944,6 +944,39 @@ textarea:focus {
   font-weight: 800;
 }
 
+.text-button {
+  padding: 0;
+  min-height: auto;
+  color: var(--bronze-dark);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
+.text-button:hover {
+  color: var(--ink);
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.auth-switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .login-note {
   min-height: 22px;
   margin: 14px 0 0;
