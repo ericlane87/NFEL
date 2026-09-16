@@ -139,6 +139,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && req.url === "/api/profile") {
+      await handleProfile(req, res);
+      return;
+    }
+
     if (req.method === "GET" && req.url === "/firebase-config.js") {
       serveFirebaseConfig(res);
       return;
@@ -214,6 +219,7 @@ async function handleEvaluation(req, res) {
   const payload = await readJson(req, maxUploadBytes);
   const deal = sanitizeDeal(payload?.deal);
   const dealDocuments = sanitizeUploadedDocuments(payload?.documents, 20);
+  await ensureUserProfile(user);
 
   deal.name = deal.name || "Untitled Deal";
 
@@ -296,6 +302,7 @@ async function handleKycEvaluation(req, res) {
   const payload = await readJson(req, maxUploadBytes);
   const questionnaire = sanitizeQuestionnaire(payload?.questionnaire);
   const kycDocuments = sanitizeUploadedDocuments(payload?.documents, 10);
+  await ensureUserProfile(user);
 
   if (!questionnaire?.full_name) {
     sendJson(res, 400, { error: "A completed questionnaire is required before KYC evaluation." });
@@ -388,6 +395,16 @@ async function handleDealList(req, res) {
   }));
 
   sendJson(res, 200, { deals });
+}
+
+async function handleProfile(req, res) {
+  const user = await requireFirebaseUser(req, res);
+  if (!user) {
+    return;
+  }
+
+  const profile = await ensureUserProfile(user);
+  sendJson(res, 200, { profile });
 }
 
 async function handleDocumentSave(req, res) {
@@ -528,6 +545,51 @@ async function saveKycEvaluation(uid, questionnaire, evaluation, documents) {
     kyc_review_id: kycRef.id,
     evaluated_at: evaluatedAt,
   };
+}
+
+async function ensureUserProfile(user) {
+  const userRef = firestore.collection("users").doc(user.uid);
+  const counterRef = firestore.collection("system").doc("client_id_counter");
+
+  return firestore.runTransaction(async (transaction) => {
+    const existingUser = await transaction.get(userRef);
+
+    if (existingUser.exists && existingUser.data()?.client_id) {
+      const data = existingUser.data();
+      const updates = {
+        email: user.email || data.email || "",
+        last_seen_at: new Date().toISOString(),
+      };
+      transaction.set(userRef, updates, { merge: true });
+      return {
+        uid: user.uid,
+        client_id: data.client_id,
+        email: updates.email,
+        status: data.status || "active",
+        created_at: data.created_at || null,
+      };
+    }
+
+    const counterDoc = await transaction.get(counterRef);
+    const current = Number(counterDoc.exists ? counterDoc.data()?.current : 1000) || 1000;
+    const nextClientId = String(current + 1);
+    const now = new Date().toISOString();
+    const profile = {
+      client_id: nextClientId,
+      email: user.email || "",
+      status: "active",
+      created_at: existingUser.exists ? existingUser.data()?.created_at || now : now,
+      last_seen_at: now,
+    };
+
+    transaction.set(counterRef, { current: current + 1, updated_at: now }, { merge: true });
+    transaction.set(userRef, profile, { merge: true });
+
+    return {
+      uid: user.uid,
+      ...profile,
+    };
+  });
 }
 
 function sanitizeQuestionnaire(questionnaire) {

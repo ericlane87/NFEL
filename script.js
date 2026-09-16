@@ -65,6 +65,8 @@ const authSubmitButton = document.querySelector(".auth-submit-button");
 const authModeToggle = document.querySelector(".auth-mode-toggle");
 const authSwitchCopy = document.querySelector(".auth-switch-copy");
 const forgotPasswordButton = document.querySelector(".forgot-password-button");
+const clientIdFields = document.querySelectorAll(".client-id");
+const clientEmailFields = document.querySelectorAll(".client-email");
 const firebaseAuth = window.nfelFirebase?.auth || null;
 const isLoginPage = document.body?.classList.contains("login-page");
 const isDashboardPage = document.body?.classList.contains("dashboard-page");
@@ -1388,6 +1390,7 @@ function initializeFirebaseAuth() {
     }
 
     if (isDashboardPage && user) {
+      await loadUserProfile();
       await loadDealsFromServer();
     }
   });
@@ -1505,6 +1508,37 @@ function getFirebaseAuthMessage(error) {
   }
 
   return "Login could not be completed. Try again.";
+}
+
+async function loadUserProfile() {
+  try {
+    const response = await fetch("/api/profile", {
+      method: "GET",
+      headers: await getAuthorizedJsonHeaders(),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(result.error || "Could not load client profile.");
+    }
+
+    const profile = result.profile || {};
+    localStorage.setItem("nfelClientProfile", JSON.stringify(profile));
+    renderClientProfile(profile);
+  } catch (error) {
+    console.error(error);
+    const cachedProfile = readStoredJson("nfelClientProfile");
+    renderClientProfile(cachedProfile || {});
+  }
+}
+
+function renderClientProfile(profile) {
+  const fallbackEmail = firebaseAuth?.currentUser?.email || "";
+  const clientId = profile?.client_id || "Pending";
+  const email = profile?.email || fallbackEmail || "Signed-in client";
+
+  clientIdFields.forEach((field) => updateText(field, clientId));
+  clientEmailFields.forEach((field) => updateText(field, email));
 }
 
 async function loadDealsFromServer() {
