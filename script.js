@@ -1,4 +1,7 @@
 const loginForm = document.querySelector(".login-panel");
+const siteHeader = document.querySelector(".site-header");
+const mobileMenuToggle = document.querySelector(".mobile-menu-toggle");
+const navLinks = document.querySelector(".nav-links");
 const contactForm = document.querySelector(".contact-form");
 const contactNote = document.querySelector(".contact-note");
 const dealTool = document.querySelector(".deal-tool");
@@ -80,6 +83,7 @@ const maxLocalDocumentBytes = 18 * 1024 * 1024;
 initializeFirebaseAuth();
 initializeAuthPanel();
 initializeDemoMode();
+initializeMobileMenu();
 restorePortalState();
 applyOnboardingState();
 initializeSignaturePad();
@@ -1405,6 +1409,24 @@ function initializeFirebaseAuth() {
       } finally {
         window.location.href = "login.html";
       }
+    });
+  });
+}
+
+function initializeMobileMenu() {
+  if (!siteHeader || !mobileMenuToggle || !navLinks) {
+    return;
+  }
+
+  mobileMenuToggle.addEventListener("click", () => {
+    const isOpen = siteHeader.classList.toggle("is-menu-open");
+    mobileMenuToggle.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  navLinks.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      siteHeader.classList.remove("is-menu-open");
+      mobileMenuToggle.setAttribute("aria-expanded", "false");
     });
   });
 }

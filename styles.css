@@ -136,6 +136,18 @@ button {
   background: #e0b66f;
 }
 
+.mobile-menu-toggle {
+  display: none;
+  padding: 10px 13px;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .hero {
   position: relative;
   min-height: 78vh;
@@ -2276,12 +2288,44 @@ textarea:focus {
 @media (max-width: 920px) {
   .site-header {
     position: absolute;
-    align-items: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
   }
 
-  .nav-links,
   .header-action {
     display: none;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+  }
+
+  .nav-links {
+    display: none;
+    order: 3;
+    width: 100%;
+    padding: 12px;
+    background: rgba(12, 15, 14, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+  }
+
+  .site-header.is-menu-open .nav-links {
+    display: grid;
+    gap: 4px;
+  }
+
+  .nav-links a {
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .nav-links a:hover {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .hero {
