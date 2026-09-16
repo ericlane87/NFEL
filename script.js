@@ -79,6 +79,7 @@ const maxLocalDocumentBytes = 18 * 1024 * 1024;
 
 initializeFirebaseAuth();
 initializeAuthPanel();
+initializeDemoMode();
 restorePortalState();
 applyOnboardingState();
 initializeSignaturePad();
@@ -1384,7 +1385,7 @@ function initializeFirebaseAuth() {
       return;
     }
 
-    if (isLoginPage && user) {
+    if (isLoginPage && user && new URLSearchParams(window.location.search).get("demo") !== "1") {
       window.location.href = getLoginRedirectTarget();
       return;
     }
@@ -1447,6 +1448,47 @@ function initializeAuthPanel() {
       forgotPasswordButton.disabled = false;
     }
   });
+}
+
+async function initializeDemoMode() {
+  if (!isLoginPage || new URLSearchParams(window.location.search).get("demo") !== "1") {
+    return;
+  }
+
+  const loginNote = loginForm?.querySelector(".login-note");
+  const button = authSubmitButton || loginForm?.querySelector("button[type='submit']");
+
+  if (!firebaseAuth) {
+    updateText(loginNote, "Demo login is not available. Refresh and try again.");
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Opening demo...";
+  }
+
+  updateText(loginNote, "Opening a demo client portal.");
+
+  try {
+    const response = await fetch("/api/demo-token", { method: "POST" });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.token) {
+      throw new Error(result.error || "Demo login could not be started.");
+    }
+
+    await firebaseAuth.signInWithCustomToken(result.token);
+    window.location.href = result.redirect || "dashboard.html";
+  } catch (error) {
+    console.error(error);
+    updateText(loginNote, error.message || "Demo login could not be started.");
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = loginForm?.dataset.authMode === "signup" ? "Create Account" : "Log In";
+    }
+  }
 }
 
 function setAuthMode(mode) {

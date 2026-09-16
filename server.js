@@ -134,6 +134,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && req.url === "/api/demo-token") {
+      await handleDemoToken(req, res);
+      return;
+    }
+
     if (req.method === "GET" && req.url === "/api/deals") {
       await handleDealList(req, res);
       return;
@@ -407,6 +412,21 @@ async function handleProfile(req, res) {
   sendJson(res, 200, { profile });
 }
 
+async function handleDemoToken(req, res) {
+  const demoUser = {
+    uid: "demo-client",
+    email: "demo.client@nfel.example",
+  };
+
+  await seedDemoUser(demoUser);
+  const token = await admin.auth().createCustomToken(demoUser.uid, { demo: true });
+
+  sendJson(res, 200, {
+    token,
+    redirect: "dashboard.html",
+  });
+}
+
 async function handleDocumentSave(req, res) {
   const user = await requireFirebaseUser(req, res);
   if (!user) {
@@ -589,6 +609,87 @@ async function ensureUserProfile(user) {
       uid: user.uid,
       ...profile,
     };
+  });
+}
+
+async function seedDemoUser(user) {
+  const now = new Date().toISOString();
+  const userRef = firestore.collection("users").doc(user.uid);
+  const demoDealRef = userRef.collection("deals").doc("demo-cocoa-export");
+  const demoEvaluationRef = demoDealRef.collection("evaluations").doc("demo-evaluation-001");
+  const profile = {
+    client_id: "1000",
+    email: user.email,
+    display_name: "ADMIn Demo Client",
+    company_name: "ADMIn Trading Group",
+    status: "demo",
+    created_at: now,
+    last_seen_at: now,
+  };
+  const evaluation = {
+    readiness_score: 84,
+    summary:
+      "The package is broadly ready for advisory review. Key trade terms are documented, but the bank-facing file would improve with clearer payment timing, logistics evidence, and updated buyer/seller verification notes.",
+    key_findings: [
+      "Deal amount, currency, origin, destination, and requested instrument are complete enough for an initial readiness review.",
+      "Uploaded document references suggest a workable commercial package, including invoice, purchase order, and draft standby support.",
+      "Payment timing and repayment source need tighter explanation before lender presentation.",
+      "Counterparty and logistics support should be updated before admin escalation.",
+    ],
+    risk_flags: [
+      "Buyer verification details are incomplete.",
+      "Shipping and insurance evidence should be refreshed.",
+      "Payment timing needs confirmation against the requested instrument.",
+    ],
+    recommended_next_steps: [
+      "Upload updated logistics, insurance, and shipment schedule support.",
+      "Confirm buyer/offtaker details and payment timing.",
+      "Add a concise source-of-repayment note for the admin review package.",
+    ],
+    missing_form_fields: ["Payment Terms", "Target Closing Date"],
+    missing_documents: ["Updated logistics document", "Buyer verification support"],
+  };
+  const deal = {
+    id: "demo-cocoa-export",
+    name: "Demo Cocoa Export Receivables Facility",
+    type: "Export finance",
+    amount: "$2,500,000",
+    currency: "USD",
+    buyer: "ADMIn Global Foods",
+    seller: "ADMIn Trading Group",
+    origin_country: "Ghana",
+    destination_country: "United States",
+    payment_terms: "LC at sight with receivables support",
+    instrument: "Standby letter of credit",
+    incoterms: "FOB",
+    closing_date: "",
+    notes:
+      "Demo package for a cocoa export receivables transaction. Materials include commercial invoice, purchase order, draft SBLC terms, and preliminary logistics notes.",
+    documents: ["commercial-invoice-demo.pdf", "purchase-order-demo.pdf", "draft-sblc-terms-demo.pdf"],
+    document_count: 3,
+    documentChecklist: {
+      doc_purchase_order: true,
+      doc_invoice: true,
+      doc_financials: false,
+      doc_kyc: true,
+      doc_logistics: false,
+      doc_instrument: true,
+    },
+    revision: 1,
+    score: evaluation.readiness_score,
+    evaluation,
+    evaluation_run: 1,
+    report_status: "Ready for Admin",
+    updated_at: now,
+  };
+
+  await userRef.set(profile, { merge: true });
+  await demoDealRef.set(deal, { merge: true });
+  await demoEvaluationRef.set({
+    deal_id: deal.id,
+    evaluated_at: now,
+    evaluation,
+    document_metadata: deal.documents.map((name) => ({ name, type: "application/pdf", size: 0 })),
   });
 }
 

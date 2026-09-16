@@ -223,6 +223,16 @@ h1 {
   box-shadow: 0 16px 34px rgba(214, 167, 91, 0.22);
 }
 
+.hero-actions .demo-action {
+  color: #f7e6bd;
+  background: rgba(214, 167, 91, 0.12);
+  border-color: rgba(214, 167, 91, 0.46);
+}
+
+.hero-actions .demo-action:hover {
+  background: rgba(214, 167, 91, 0.2);
+}
+
 .mobile-login-action {
   display: none;
 }
